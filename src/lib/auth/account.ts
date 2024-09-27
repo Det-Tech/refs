@@ -1,0 +1,140 @@
+import * as uint8arrays from "uint8arrays"
+import type FileSystem from "@oddjs/odd/fs/index"
+import { sha256 } from "@oddjs/odd/components/crypto/implementation/browser"
+import { publicKeyToDid } from "@oddjs/odd/did/transformers"
+import type { Crypto } from "@oddjs/odd"
+import { getRecoil, setRecoil } from "recoil-nexus"
+
+import { filesystemStore, sessionStore } from "../../stores/system"
+import { AREAS } from "@/stores/data"
+import { Data_DIRS } from "@/lib/data"
+import { ACCOUNT_SETTINGS_DIR } from "../account-settings"
+import { asyncDebounce } from "../utils"
+import { getBackupStatus } from "./backup"
+
+export const USERNAME_STORAGE_KEY = "fullUsername"
+
+export enum RECOVERY_STATES {
+  Ready,
+  Processing,
+  Error,
+  Done,
+}
+
+export const isUsernameValid = async (username: string): Promise<boolean> => {
+  const session = getRecoil(sessionStore)
+  return (
+    session.authStrategy !== null &&
+    session.authStrategy.isUsernameValid(username)
+  )
+}
+
+export const isUsernameAvailable = async (
+  username: string
+): Promise<boolean> => {
+  const session = getRecoil(sessionStore)
+  return (
+    session.authStrategy !== null &&
+    session.authStrategy.isUsernameAvailable(username)
+  )
+}
+
+export const debouncedIsUsernameAvailable = asyncDebounce(
+  isUsernameAvailable,
+  300
+)
+
+/**
+ * Create additional directories and files needed by the app
+ *
+ * @param fs FileSystem
+ */
+const initializeFilesystem = async (fs: FileSystem): Promise<void> => {
+  await fs.mkdir(Data_DIRS[AREAS.PUBLIC])
+  await fs.mkdir(Data_DIRS[AREAS.PRIVATE])
+  await fs.mkdir(ACCOUNT_SETTINGS_DIR)
+}
+
+export const createDID = async (
+  crypto: Crypto.Implementation
+): Promise<string> => {
+  const pubKey = await crypto.keystore.publicExchangeKey()
+  const ksAlg = await crypto.keystore.getAlgorithm()
+
+  return publicKeyToDid(crypto, pubKey, ksAlg)
+}
+
+export const prepareUsername = async (username: string): Promise<string> => {
+  const normalizedUsername = username.normalize("NFD")
+  const hashedUsername = await sha256(
+    new TextEncoder().encode(normalizedUsername)
+  )
+
+  return uint8arrays.toString(hashedUsername, "base32").slice(0, 32)
+}
+
+export const register = async (hashedUsername: string): Promise<boolean> => {
+  const originalSession = getRecoil(sessionStore)
+  const {
+    authStrategy,
+    program: {
+      components: { storage },
+    },
+  } = originalSession
+
+  const { success } = await authStrategy.register({ username: hashedUsername })
+
+  if (!success) return success
+
+  const session = await authStrategy.session()
+  setRecoil(filesystemStore, session?.fs || null)
+
+  // TODO Remove if only public and private directories are needed
+  await initializeFilesystem(session?.fs as FileSystem)
+
+  const fullUsername = (await storage.getItem(USERNAME_STORAGE_KEY)) as string
+
+  setRecoil(sessionStore, {
+    ...originalSession,
+    username: {
+      full: fullUsername,
+      hashed: hashedUsername,
+      trimmed: fullUsername.split("#")[0],
+    },
+    session,
+  })
+
+  return success
+}
+
+export const loadAccount = async (
+  hashedUsername: string,
+  fullUsername: string
+): Promise<void> => {
+  const originalSession = getRecoil(sessionStore)
+  const {
+    authStrategy,
+    program: {
+      components: { storage },
+    },
+  } = originalSession
+
+  const session = await authStrategy.session()
+
+  setRecoil(filesystemStore, session?.fs || null)
+
+  const backupStatus = await getBackupStatus(session?.fs as FileSystem)
+
+  await storage.setItem(USERNAME_STORAGE_KEY, fullUsername)
+
+  setRecoil(sessionStore, {
+    ...originalSession,
+    username: {
+      full: fullUsername,
+      hashed: hashedUsername,
+      trimmed: fullUsername.split("#")[0],
+    },
+    session,
+    backupCreated: !!backupStatus?.created,
+  })
+}
