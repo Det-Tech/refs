@@ -12,7 +12,13 @@ import { dataStore } from "@/stores/data"
 import { AREAS } from "@/stores/data"
 import { shortFileName } from "@/utils/handler"
 
+import { useRecoilValue } from "recoil"
+import { getRecoil } from "recoil-nexus"
+import { sessionStore, filesystemStore } from "@/stores/system"
+
 export default function SharedData() {
+  const { program } = useRecoilValue(sessionStore)
+  const fs = getRecoil(filesystemStore)
   const searchParams = useSearchParams()
   const router = useRouter()
   const [data, setData] = useRecoilState(dataStore)
@@ -21,6 +27,18 @@ export default function SharedData() {
   const [isAccept, setIsAccept] = useState<boolean>(false)
   const shareId = searchParams.get("shareId")
   const sharedBy = searchParams.get("sharedBy")
+
+  useEffect(() => {
+    const initalHandler = async () => {
+      const fs = getRecoil(filesystemStore)
+      if (!fs) return
+
+      const rootCid = await fs.root.put()
+      console.log('debug roitCID', rootCid.toString())
+    }
+
+    initalHandler()
+  }, [])
 
   useEffect(() => {
     setData({

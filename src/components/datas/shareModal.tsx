@@ -1,34 +1,26 @@
 import { Fragment, useCallback, useEffect, useState } from "react"
-import { Dialog, Transition } from "@headlessui/react"
+import { Dialog, Transition, Listbox } from "@headlessui/react"
 import parse from "html-react-parser"
 import * as odd from "@oddjs/odd"
 import clipboardCopy from "clipboard-copy"
 import { useRecoilValue } from "recoil"
 import { getRecoil } from "recoil-nexus"
+import { ToastContainer, toast } from "react-toastify"
 import { XMarkIcon, CheckIcon } from "@heroicons/react/20/solid"
-import { ShareIcon } from "@heroicons/react/24/outline"
+import { ShareIcon, ChevronUpDownIcon } from "@heroicons/react/24/outline"
 import QRCode from "qrcode-svg"
 import Button from "../common/Button"
 import { filesystemStore, sessionStore } from "@/stores/system"
 import { Data_DIRS } from "@/lib/data"
 import { AREAS } from "@/stores/data"
-
-interface IShare {
-  isOpen: boolean
-  setIsOpen: (val: boolean) => void
-  name: string
-}
-
-interface IAlert {
-  open: boolean
-  message: React.ReactNode | undefined
-  severity: string | undefined
-}
+import { IUser, IShare, IAlert } from "@/config/interfaces"
+import "react-toastify/dist/ReactToastify.css"
 
 const ShareModal = (props: IShare) => {
   const { program } = useRecoilValue(sessionStore)
   const [shareWith, setShareWith] = useState<string>("")
   const [qrcode, setQrcode] = useState<string>("")
+  const [users, setUsers] = useState<IUser[] | null>(null)
   const [connectionLink, setConnectionLink] = useState<string>("")
   const [isInvalid, setIsInvalid] = useState<boolean>(false)
   const [isPending, setIsPending] = useState<boolean>(false)
@@ -39,26 +31,23 @@ const ShareModal = (props: IShare) => {
     severity: undefined,
   })
 
-  // const closeNotify = useCallback(async () => {
-  //   setAlertState({
-  //     open: false,
-  //     message: undefined,
-  //     severity: undefined,
-  //   })
-  // }, [setAlertState])
+  useEffect(() => {
+    const fetchHandler = async () => {
+      const _users = await fetch("/api/getUsers", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+      setUsers(await _users.json())
+    }
 
-  // const displayNotify = useCallback(
-  //   async (type: string | undefined, content: string) => {
-  //     setAlertState({
-  //       open: true,
-  //       message: parse(content),
-  //       severity: type,
-  //     })
-  //   },
-  //   [setAlertState]
-  // )
+    fetchHandler()
+  }, [])
 
   const shareHandler = async () => {
+    if (isPending) return
+
     if (shareWith === "") {
       setIsInvalid(true)
       return
@@ -74,6 +63,8 @@ const ShareModal = (props: IShare) => {
     }
 
     try {
+      setIsPending(true)
+
       const shareDetails = await fs.sharePrivate(
         [
           odd.path.combine(
@@ -83,7 +74,6 @@ const ShareModal = (props: IShare) => {
         ],
         { shareWith: shareWith }
       )
-      console.log("shareDetails: ", shareDetails)
 
       const origin = window.location.origin
 
@@ -101,8 +91,11 @@ const ShareModal = (props: IShare) => {
           join: true,
         }).svg()
       )
+
+      setIsPending(false)
     } catch (error) {
-      console.log("share error: ", error)
+      toast.error(error.toString())
+      setIsPending(false)
     }
   }
 
@@ -155,7 +148,7 @@ const ShareModal = (props: IShare) => {
           as="div"
           className="relative z-20"
           open={props.isOpen}
-          onClose={() => closeHandler()}
+          onClose={() => props.setIsOpen(true)}
         >
           <Transition.Child
             as={Fragment}
@@ -211,23 +204,80 @@ const ShareModal = (props: IShare) => {
                           Share With:{" "}
                         </div>
                         <div className="col-span-9">
-                          <input
-                            type="text"
-                            className={`relative w-full rounded-md bg-transparent border border-black-semiLight focus:border-gray-400 py-1.5 md:py-2 px-3 focus:outline-none leading-6 ${
-                              isPending
-                                ? "opacity-70 cursor-not-allowed"
-                                : "cursor-text"
-                            }`}
-                            value={shareWith}
-                            onChange={(e) => {
-                              setShareWith(e.target.value)
-                              setIsInvalid(false)
-                            }}
-                          />
+                          <Listbox value={shareWith} onChange={setShareWith}>
+                            <div className="relative">
+                              <Listbox.Button className="relative w-full cursor-default rounded-lg bg-transparent border border-black-semiLight py-1.5 md:py-2 pl-3 pr-10 text-left focus:outline-none h-[45px]">
+                                <span className="block truncate">
+                                  {shareWith !== "" &&
+                                    users.filter(
+                                      (user: IUser) => user.hashed === shareWith
+                                    )[0]?.name +
+                                      " (" +
+                                      shareWith +
+                                      ")"}
+                                </span>
+                                <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                  <ChevronUpDownIcon
+                                    className="h-5 w-5 text-gray-400"
+                                    aria-hidden="true"
+                                  />
+                                </span>
+                              </Listbox.Button>
+                              <Transition
+                                as={Fragment}
+                                leave="transition ease-in duration-100"
+                                leaveFrom="opacity-100"
+                                leaveTo="opacity-0"
+                              >
+                                <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-black-light border border-black-semiLight py-1 text-base shadow-lg focus:outline-none">
+                                  {users !== null &&
+                                    users.map((user: IUser, index: number) => (
+                                      <Listbox.Option
+                                        key={index}
+                                        className={({ active }) =>
+                                          `relative cursor-default select-none py-1.5 pl-10 pr-4 ${
+                                            active
+                                              ? "bg-black-semiLight text-white"
+                                              : "text-white"
+                                          }`
+                                        }
+                                        value={user.hashed}
+                                      >
+                                        {({ selected }) => (
+                                          <>
+                                            <span
+                                              className={`block truncate ${
+                                                selected
+                                                  ? "font-medium"
+                                                  : "font-normal"
+                                              }`}
+                                            >
+                                              {user.name +
+                                                " (" +
+                                                user.hashed +
+                                                ")"}
+                                            </span>
+                                            {selected ? (
+                                              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-purple">
+                                                <CheckIcon
+                                                  className="h-5 w-5"
+                                                  aria-hidden="true"
+                                                />
+                                              </span>
+                                            ) : null}
+                                          </>
+                                        )}
+                                      </Listbox.Option>
+                                    ))}
+                                </Listbox.Options>
+                              </Transition>
+                            </div>
+                          </Listbox>
                         </div>
                       </div>
                     </>
                   )}
+
                   {connectionLink !== "" ? (
                     <div className="relative pb-2">
                       <Button
@@ -245,7 +295,7 @@ const ShareModal = (props: IShare) => {
                       )}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-4 font-lato mt-4">
+                    <div className="grid grid-cols-2 gap-4 font-lato mt-8">
                       <div className="col-span-1">
                         <button
                           type="button"
@@ -271,6 +321,16 @@ const ShareModal = (props: IShare) => {
                 </Dialog.Panel>
               </Transition.Child>
             </div>
+            <ToastContainer
+              position="bottom-right"
+              autoClose={5000}
+              hideProgressBar={true}
+              newestOnTop={false}
+              closeOnClick
+              rtl={false}
+              draggable
+              theme="colored"
+            />
           </div>
         </Dialog>
       </Transition>

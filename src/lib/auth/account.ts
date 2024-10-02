@@ -94,6 +94,22 @@ export const register = async (hashedUsername: string): Promise<boolean> => {
 
   const fullUsername = (await storage.getItem(USERNAME_STORAGE_KEY)) as string
 
+  try {
+    await fetch("/api/setUser", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: fullUsername.split("#")[0],
+        hashed: hashedUsername,
+        fullName: fullUsername,
+      }),
+    })
+  } catch (error) {
+    
+  }
+
   setRecoil(sessionStore, {
     ...originalSession,
     username: {
