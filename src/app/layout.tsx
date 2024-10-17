@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Header from "@/components/Header"
 import Sidebar from "@/components/Sidebar"
+import Notification from "@/components/common/Notification"
 import { Inter } from "next/font/google"
 import RecoilContextProvider from "@/lib/RecoilContextProvider"
 import "@/assets/styles/globals.css"
@@ -34,6 +35,7 @@ export default function RootLayout({
                 {children}
               </div>
             </div>
+            <Notification/>
           </InitProvider>
         </RecoilContextProvider>
       </body>

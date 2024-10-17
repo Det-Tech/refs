@@ -5,8 +5,8 @@ import {
   ClipboardDocumentCheckIcon,
   CheckIcon,
 } from "@heroicons/react/24/outline"
+import { toast } from "react-toastify"
 import { sessionStore } from "@/stores/system"
-import { addNotification } from "@/lib/notifications"
 
 const Username = () => {
   const session = useRecoilValue(sessionStore)
@@ -14,7 +14,7 @@ const Username = () => {
 
   const handleCopyUsername = async (): Promise<void> => {
     await clipboardCopy(session.username.hashed)
-    addNotification({ msg: "Copied to clipboard", type: "success" })
+    toast.success("Copied to clipboard")
     setIsCopied(true)
   }
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { useRecoilState } from "recoil"
 import AcceptModal from "./acceptModal"
 import Button from "../common/Button"
@@ -12,13 +12,8 @@ import { dataStore } from "@/stores/data"
 import { AREAS } from "@/stores/data"
 import { shortFileName } from "@/utils/handler"
 
-import { useRecoilValue } from "recoil"
-import { getRecoil } from "recoil-nexus"
-import { sessionStore, filesystemStore } from "@/stores/system"
-
 export default function SharedData() {
-  const { program } = useRecoilValue(sessionStore)
-  const fs = getRecoil(filesystemStore)
+  const pathName = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
   const [data, setData] = useRecoilState(dataStore)
@@ -27,18 +22,7 @@ export default function SharedData() {
   const [isAccept, setIsAccept] = useState<boolean>(false)
   const shareId = searchParams.get("shareId")
   const sharedBy = searchParams.get("sharedBy")
-
-  useEffect(() => {
-    const initalHandler = async () => {
-      const fs = getRecoil(filesystemStore)
-      if (!fs) return
-
-      const rootCid = await fs.root.put()
-      console.log('debug roitCID', rootCid.toString())
-    }
-
-    initalHandler()
-  }, [])
+  const paths = pathName.split("/").slice(2)
 
   useEffect(() => {
     setData({
@@ -59,7 +43,7 @@ export default function SharedData() {
     const loadHandler = async () => {
       if (isAccept) {
         try {
-          await getFilesFromWNFS()
+          await getFilesFromWNFS(paths)
           setIsLoading(false)
           router.push("/access")
         } catch (error) {
@@ -70,19 +54,19 @@ export default function SharedData() {
     }
 
     loadHandler()
-  }, [isAccept])
+  }, [paths, isAccept])
 
   useEffect(() => {
     if (shareId === null && sharedBy === null) {
-      getFilesFromWNFS()
+      getFilesFromWNFS(paths)
     }
   }, [shareId, sharedBy])
 
   const handleDeleteFile = useCallback(async (name: string) => {
-    await deleteFileFromWNFS(name)
+    await deleteFileFromWNFS(paths, name)
 
-    getFilesFromWNFS()
-  }, [])
+    getFilesFromWNFS(paths)
+  }, [paths])
 
   return (
     <div>
@@ -95,7 +79,7 @@ export default function SharedData() {
         <div className="border-2 border-white h-full rounded-lg mt-6 p-6">
           <h2 className="text-xl font-bold uppercase mb-6">Shared Files</h2>
           <div className="flex flex-col gap-4">
-            {data.sharedFiles.map((data, index) => (
+            {data.shared.files.map((data, index) => (
               <div
                 key={index}
                 className="grid grid-cols-12 gap-2 bg-gray-semiLight rounded-lg p-4"

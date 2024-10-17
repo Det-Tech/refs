@@ -5,7 +5,7 @@ import * as odd from "@oddjs/odd"
 import clipboardCopy from "clipboard-copy"
 import { useRecoilValue } from "recoil"
 import { getRecoil } from "recoil-nexus"
-import { ToastContainer, toast } from "react-toastify"
+import { toast } from "react-toastify"
 import { XMarkIcon, CheckIcon } from "@heroicons/react/20/solid"
 import { ShareIcon, ChevronUpDownIcon } from "@heroicons/react/24/outline"
 import QRCode from "qrcode-svg"
@@ -321,16 +321,6 @@ const ShareModal = (props: IShare) => {
                 </Dialog.Panel>
               </Transition.Child>
             </div>
-            <ToastContainer
-              position="bottom-right"
-              autoClose={5000}
-              hideProgressBar={true}
-              newestOnTop={false}
-              closeOnClick
-              rtl={false}
-              draggable
-              theme="colored"
-            />
           </div>
         </Dialog>
       </Transition>

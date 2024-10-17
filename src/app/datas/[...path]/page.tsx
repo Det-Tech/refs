@@ -4,7 +4,7 @@ const DataUpload = dynamic(() => import("@/components/datas/Upload"), {
   ssr: false,
 })
 
-export default function DatasPage() {
+export default function DatasSubPage() {
   return (
     <main className="flex flex-col flex-1">
       <DataUpload />

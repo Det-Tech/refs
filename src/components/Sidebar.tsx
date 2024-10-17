@@ -9,13 +9,13 @@ import { menus } from "@/config/data"
 import { IMenu } from "@/config/interfaces"
 
 export default function Sidebar() {
-  const path = usePathname()
+  const pathName = usePathname()
   const session = useRecoilValue(sessionStore)
-  const links = menus.map((menu) => {
-    return menu.link
-  })
 
-  if (!session.session || (!links.includes(path)) && path !== "/setting") {
+  const paths = pathName.split("/")
+  const path = paths.length > 2 ? "/" + paths[1] : pathName
+
+  if (!session.session || path === "/recover") {
     return <></>
   }
 

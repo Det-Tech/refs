@@ -5,14 +5,13 @@ import { getRecoil, setRecoil } from "recoil-nexus"
 import type { CID } from "multiformats/cid"
 import type { PuttableUnixTree, File as WNFile } from "@oddjs/odd/fs/types"
 import type { Metadata } from "@oddjs/odd/fs/metadata"
-
+import { toast } from "react-toastify"
 import { fileToUint8Array } from "./utils"
 import {
   accountSettingsStore,
   filesystemStore,
   sessionStore,
 } from "../stores/system"
-import { addNotification } from "./notifications"
 
 export type Avatar = {
   cid: string
@@ -191,9 +190,9 @@ export const uploadAvatarToWNFS = async (image: File): Promise<void> => {
     // Announce the changes to the server
     await fs.publish()
 
-    addNotification({ msg: `Your avatar has been updated!`, type: "success" })
+    toast.success("Your avatar has been updated!")
   } catch (error: any) {
-    addNotification({ msg: error.message, type: "error" })
+    toast.error(error.message)
     console.error(error)
   }
 }

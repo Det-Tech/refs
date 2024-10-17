@@ -3,10 +3,9 @@ import { getRecoil, setRecoil } from "recoil-nexus"
 import type PublicFile from "@oddjs/odd/fs/v1/PublicFile"
 import type PrivateFile from "@oddjs/odd/fs/v1/PrivateFile"
 import { isFile } from "@oddjs/odd/fs/types/check"
-
+import { toast } from "react-toastify"
 import { filesystemStore } from "@/stores/system"
 import { dataStore, AREAS } from "@/stores/data"
-import { addNotification } from "@/lib/notifications"
 import { fileToUint8Array } from "@/lib/utils"
 
 export type Product = {
@@ -19,9 +18,18 @@ export type Product = {
 }
 
 export type Data = {
-  publicFiles: Product[]
-  privateFiles: Product[]
-  sharedFiles: Product[]
+  public: {
+    files: Product[]
+    folders: string[]
+  }
+  private: {
+    files: Product[]
+    folders: string[]
+  }
+  shared: {
+    files: Product[]
+    folders: string[]
+  }
   selectedArea: AREAS
   loading: boolean
 }
@@ -42,32 +50,42 @@ const FILE_SIZE_LIMIT = 20
  * Get files from the user's WNFS and construct the `src` value for the files
  */
 
-export const getFilesFromWNFS: () => Promise<void> = async () => {
+export const getFilesFromWNFS: (paths: string[]) => Promise<void> = async (
+  paths
+) => {
   const data = getRecoil(dataStore)
   const fs = getRecoil(filesystemStore)
   if (!fs) return
 
+  // Set loading: true on the dataStore
+  setRecoil(dataStore, { ...data, loading: true })
+
+  const { selectedArea } = data
+  const isPrivate = selectedArea === AREAS.PRIVATE
+  const isShared = selectedArea === AREAS.SHARED
+
+  const directory = odd.path.combine(Data_DIRS[selectedArea], {
+    directory: paths,
+  })
+
   try {
-    // Set loading: true on the dataStore
-    setRecoil(dataStore, { ...data, loading: true })
-
-    const { selectedArea } = data
-    const isPrivate = selectedArea === AREAS.PRIVATE
-    const isShared = selectedArea === AREAS.SHARED
-
-    // Set path to either private or public data dir
-    const path = Data_DIRS[selectedArea]
-
     // Get list of links for files in the data dir
-    const links = await fs.ls(path)
+    const isExist = await fs.exists(directory)
+    if (!isExist) return
 
+    const links = await fs.ls(directory)
+
+    let folders = []
     let files = await Promise.all(
       Object.entries(links).map(async ([name]) => {
         const file = await fs.get(
-          odd.path.combine(Data_DIRS[selectedArea], odd.path.file(`${name}`))
+          odd.path.combine(directory, odd.path.file(`${name}`))
         )
 
-        if (!isFile(file)) return null
+        if (!isFile(file)) {
+          folders.push(name)
+          return null
+        }
 
         // The CID for private files is currently located in `file.header.content`,
         // whereas the CID for public files is located in `file.cid`
@@ -105,14 +123,23 @@ export const getFilesFromWNFS: () => Promise<void> = async () => {
       ...data,
       ...(isShared
         ? {
-            sharedFiles: files,
+            shared: {
+              files: files,
+              folders: folders,
+            },
           }
         : isPrivate
           ? {
-              privateFiles: files,
+              private: {
+                files: files,
+                folders: folders,
+              },
             }
           : {
-              publicFiles: files,
+              public: {
+                files: files,
+                folders: folders,
+              },
             }),
       loading: false,
     })
@@ -129,14 +156,20 @@ export const getFilesFromWNFS: () => Promise<void> = async () => {
  * Upload an file to the user's private or public WNFS
  * @param file
  */
-
-export const uploadFileToWNFS: (file: File) => Promise<void> = async (file) => {
+export const uploadFileToWNFS: (
+  paths: string[],
+  file: File
+) => Promise<void> = async (paths, file) => {
   const data = getRecoil(dataStore)
   const fs = getRecoil(filesystemStore)
   if (!fs) return
 
   try {
     const { selectedArea } = data
+
+    const directory = odd.path.combine(Data_DIRS[selectedArea], {
+      directory: paths,
+    })
 
     // Reject files over 20MB
     const fileSizeInMB = file.size / (1024 * 1024)
@@ -146,7 +179,7 @@ export const uploadFileToWNFS: (file: File) => Promise<void> = async (file) => {
 
     // Reject the upload if the file already exists in the directory
     const fileExists = await fs.exists(
-      odd.path.combine(Data_DIRS[selectedArea], odd.path.file(file.name))
+      odd.path.combine(directory, odd.path.file(file.name))
     )
     if (fileExists) {
       throw new Error(`${file.name} file already exists`)
@@ -154,19 +187,15 @@ export const uploadFileToWNFS: (file: File) => Promise<void> = async (file) => {
 
     // Create a sub directory and add some content
     await fs.write(
-      odd.path.combine(Data_DIRS[selectedArea], odd.path.file(file.name)),
+      odd.path.combine(directory, odd.path.file(file.name)),
       await fileToUint8Array(file)
     )
 
     // Announce the changes to the server
     await fs.publish()
-
-    addNotification({
-      msg: `${file.name} file has been published`,
-      type: "success",
-    })
+    toast.success(`${file.name} file has been published`)
   } catch (error) {
-    addNotification({ msg: (error as Error).message, type: "error" })
+    toast.error((error as Error).message)
     console.error(error)
   }
 }
@@ -175,9 +204,10 @@ export const uploadFileToWNFS: (file: File) => Promise<void> = async (file) => {
  * Delete an file from the user's private or public WNFS
  * @param name
  */
-export const deleteFileFromWNFS: (name: string) => Promise<void> = async (
-  name
-) => {
+export const deleteFileFromWNFS: (
+  paths: string[],
+  name: string
+) => Promise<void> = async (paths, name) => {
   const data = getRecoil(dataStore)
   const fs = getRecoil(filesystemStore)
   if (!fs) return
@@ -185,31 +215,56 @@ export const deleteFileFromWNFS: (name: string) => Promise<void> = async (
   try {
     const { selectedArea } = data
 
+    const directory = odd.path.combine(Data_DIRS[selectedArea], {
+      directory: paths,
+    })
+
     const fileExists = await fs.exists(
-      odd.path.combine(Data_DIRS[selectedArea], odd.path.file(name))
+      odd.path.combine(directory, odd.path.file(name))
     )
 
     if (fileExists) {
       // Remove files from server
-      await fs.rm(
-        odd.path.combine(Data_DIRS[selectedArea], odd.path.file(name))
-      )
+      await fs.rm(odd.path.combine(directory, odd.path.file(name)))
 
       // Announce the changes to the server
       await fs.publish()
 
-      addNotification({
-        msg: `${name} file has been deleted`,
-        type: "success",
-      })
+      toast.success(`${name} file has been deleted`)
 
       // Refetch files and update dataStore
-      await getFilesFromWNFS()
+      await getFilesFromWNFS(paths)
     } else {
       throw new Error(`${name} file has already been deleted`)
     }
   } catch (error) {
-    addNotification({ msg: (error as Error).message, type: "error" })
+    toast.error((error as Error).message)
     console.error(error)
+  }
+}
+
+/**
+ * Upload an file to the user's private or public WNFS
+ * @param file
+ */
+export const createFolderToWNFS: (
+  paths: string[],
+  folderName: string
+) => Promise<void> = async (paths, folderName) => {
+  const data = getRecoil(dataStore)
+  const fs = getRecoil(filesystemStore)
+  if (!fs) return
+
+  const { selectedArea } = data
+
+  const directory = odd.path.combine(Data_DIRS[selectedArea], {
+    directory: paths,
+  })
+
+  try {
+    await fs.mkdir(odd.path.combine(directory, odd.path.directory(folderName)))
+    await fs.publish()
+  } catch (error) {
+    toast.error((error as Error).message)
   }
 }

@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from "react"
 import { useRecoilValue } from "recoil"
 import { ArrowDownOnSquareIcon, CheckIcon } from "@heroicons/react/24/outline"
+import LinkButton from "../common/LinkButton"
 import { sessionStore } from "@/stores/system"
 import { generateRecoveryKit } from "@/lib/account-settings"
 
@@ -48,7 +49,7 @@ export default function RecoveryKit() {
       </div>
       <div className="flex justify-start">
         <a
-          className=" flex justify-center items-center gap-2 cursor-pointer text-center rounded-md white shadow-btn px-6 py-2 select-none bg-sky text-black hover:bg-sky-400 mt-4"
+          className="flex justify-center items-center gap-2 cursor-pointer text-center rounded-md white shadow-btn px-6 py-2 select-none bg-sky-400 text-white hover:bg-sky-500 mt-4"
           ref={downloadLinkRef}
         >
           <div className="flex items-center w-5 h-5">

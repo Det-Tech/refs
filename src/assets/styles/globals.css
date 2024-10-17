@@ -6,6 +6,9 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
+
+  --toastify-icon-color-success: #4AE0F6 !important;
+  --toastify-color-progress-success: #4AE0F6 !important;
 }
 
 @media (prefers-color-scheme: dark) {

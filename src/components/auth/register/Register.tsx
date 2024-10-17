@@ -129,12 +129,12 @@ const Register = () => {
               id="shared-computer"
               className="peer w-4 h-4 translate-y-0.5 mr-1"
             />
-            {/* Warning when "This is a shared computer" is checked */}
+            {/* Warning when "This is a shared device" is checked */}
             <label
               htmlFor="shared-computer"
               className="cursor-pointer ml-1 text-sm grid-inline"
             >
-              This is a public or shared computer
+              This is a public or shared device
             </label>
             <label
               htmlFor="registration"
@@ -143,7 +143,7 @@ const Register = () => {
               <span className="text-red-400 text-left text-sm">
                 In order to ensure the security of your private data, the ODD
                 SDK does not recommend creating an account from a public or
-                shared computer.
+                shared device.
               </span>
             </label>
           </div>

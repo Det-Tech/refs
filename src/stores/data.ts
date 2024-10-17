@@ -10,9 +10,18 @@ export enum AREAS {
 
 const initialData: Data = {
   loading: true,
-  publicFiles: [],
-  privateFiles: [],
-  sharedFiles: [],
+  public: {
+    files: [],
+    folders: [],
+  },
+  private: {
+    files: [],
+    folders: [],
+  },
+  shared: {
+    files: [],
+    folders: [],
+  },
   selectedArea: AREAS.PUBLIC,
 }
 

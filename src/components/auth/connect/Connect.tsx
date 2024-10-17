@@ -11,7 +11,7 @@ export default function Connect() {
           <span className="text-7xl font-bold text-white">Etherland</span>
         </div>
         <div className="text-center text-white text-3xl font-bold -translate-y-2">
-          ProApp
+          REFS
         </div>
         <div className=" flex flex-col gap-6 w-96 mx-auto bg-black-light bg-opacity-80 rounded-xl px-8 py-10 mt-6">
           <LinkButton

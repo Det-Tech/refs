@@ -1,177 +1,143 @@
 import { useCallback, useState } from "react"
-import { DocumentTextIcon, CloudArrowUpIcon } from "@heroicons/react/24/outline"
-import { useRecoilValue } from "recoil"
-import Button from "../common/Button"
-import Input from "./Input"
-import ShareModal from "./shareModal"
-import { Spinner } from "../common/Loader"
 import {
-  getFilesFromWNFS,
-  uploadFileToWNFS,
-  deleteFileFromWNFS,
-} from "@/lib/data"
-import { shortFileName } from "@/utils/handler"
+  DocumentTextIcon,
+  FolderIcon,
+  FilmIcon,
+  PhotoIcon,
+  DocumentIcon,
+  EyeIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline"
+import { useRecoilValue } from "recoil"
+import Link from "next/link"
+import Nav from "./Nav"
+import PreviewModal from "./PreviewModal"
+import FileUploader from "../common/FileUploader"
+import DropBox from "../common/Dropbox"
+import CreateFolder from "../common/CreateFolder"
+import Button from "../common/Button"
+import ShareModal from "./ShareModal"
+import { getFilesFromWNFS, deleteFileFromWNFS } from "@/lib/data"
+import { shortFileName, isVideo, isImage, isPdf } from "@/utils/handler"
 import { dataStore } from "@/stores/data"
-import { IFile } from "@/config/interfaces"
+import { Product } from "@/lib/data"
 
-export default function PrivateData() {
-  const datas = useRecoilValue(dataStore)
-  const [isOpen, setIsOpen] = useState<boolean>(false)
-  const [fileName, setFileName] = useState<string>("")
-  const [info, setInfo] = useState<IFile>({
-    file: null,
-    type: "",
-    document: "",
-    name: "",
-    expirty: "",
-  })
+const FileIcon = ({ name }: { name: string }) => {
+  if (isVideo(name)) return <FilmIcon className="w-6" />
 
-  const handleFileInput = (val: File | null) => {
-    if (val === null || val === undefined) return
-
-    setInfo((prev) => {
-      return {
-        ...prev,
-        file: val,
-      }
-    })
+  if (isPdf(name)) {
+    return <DocumentTextIcon className="w-6" />
   }
 
-  const handleDataInput = useCallback((name: string, val: string) => {
-    setInfo((prev) => {
-      return {
-        ...prev,
-        [name]: val,
-      }
-    })
-  }, [])
+  if (isImage(name)) {
+    return <PhotoIcon className="w-6" />
+  }
 
-  const handleUpdateFile = useCallback(async () => {
-    if (info.file === null || datas.loading) return
+  return <DocumentIcon className="w-6" />
+}
 
-    await uploadFileToWNFS(info.file)
+export default function PrivateData({ paths }: { paths: string[] }) {
+  const datas = useRecoilValue(dataStore)
+  const [isPreview, setIsPreview] = useState<boolean>(false)
+  const [selectedData, setSelectedData] = useState<Product>()
+  const [openFileUpload, setOpenFileUpload] = useState<boolean>(false)
+  const [openCreateFolder, setOpenCreateFolder] = useState<boolean>(false)
+  const [isOpen, setIsOpen] = useState<boolean>(false)
+  const [fileName, setFileName] = useState<string>("")
 
-    getFilesFromWNFS()
-  }, [info.file, datas])
+  const handleDeleteFile = useCallback(
+    async (name: string) => {
+      await deleteFileFromWNFS(paths, name)
 
-  const handleDeleteFile = useCallback(async (name: string) => {
-    await deleteFileFromWNFS(name)
-
-    getFilesFromWNFS()
-  }, [])
+      getFilesFromWNFS(paths)
+    },
+    [paths]
+  )
 
   const handleShareFile = useCallback(async (name: string) => {
     setFileName(name)
     setIsOpen(true)
   }, [])
 
+  const handlePreviewFile = useCallback((data: Product) => {
+    setSelectedData(data)
+    setIsPreview(true)
+  }, [])
+
   return (
     <div>
-      <h2 className="text-xl font-bold uppercase mb-4">File Upload</h2>
-      <div className="flex justify-between items-center gap-6  bg-gray-semiLight px-16 py-6 rounded-md">
-        <div className="flex gap-16">
-          <label
-            htmlFor="file-upload"
-            className="flex flex-col justify-center items-center select-none bg-white cursor-pointer px-12 rounded-xl active:scale-95 active:border-gray-light border-2"
-          >
-            <input
-              id="file-upload"
-              type="file"
-              className="hidden"
-              onChange={(e) => handleFileInput(e.target.files[0])}
-            />
-            <DocumentTextIcon className="w-16" />
-            <div className="mt-2">
-              {info.file === null
-                ? "Import a file"
-                : shortFileName(info.file.name)}
-            </div>
-          </label>
-          <div className="flex flex-col gap-4 select-none">
-            <Input
-              type="text"
-              name="type"
-              placeholder="File"
-              val={info.type}
-              setVal={(name, val) => handleDataInput(name, val)}
-            />
-            <Input
-              type="text"
-              name="document"
-              placeholder="Type of document"
-              val={info.document}
-              setVal={(name, val) => handleDataInput(name, val)}
-            />
-            <Input
-              type="text"
-              name="name"
-              placeholder="Document name"
-              val={info.name}
-              setVal={(name, val) => handleDataInput(name, val)}
-            />
-            <Input
-              type="text"
-              name="expirty"
-              placeholder="Expirty"
-              val={info.expirty}
-              setVal={(name, val) => handleDataInput(name, val)}
-            />
-          </div>
-        </div>
-        <div>
-          <Button
-            type="orange"
-            size="md"
-            title={datas.loading ? "Uploading..." : "Upload"}
-            LeftIcon={
-              datas.loading ? <Spinner className="w-5" /> : <CloudArrowUpIcon />
-            }
-            onClick={() => handleUpdateFile()}
-            isDisable={datas.loading || info.file === null}
-          />
-        </div>
+      <div className="flex justify-between items-center mb-4">
+        <Nav paths={paths} />
+        <DropBox
+          setOpenFileUpload={setOpenFileUpload}
+          setOpenCreateFolder={setOpenCreateFolder}
+        />
       </div>
-      <div className="border-t border-white pt-8 mt-12">
+      {openFileUpload && (
+        <FileUploader
+          datas={datas}
+          setOpenFileUpload={setOpenFileUpload}
+          paths={paths}
+        />
+      )}
+      {openCreateFolder && (
+        <CreateFolder
+          datas={datas}
+          setOpenCreateFolder={setOpenCreateFolder}
+          paths={paths}
+        />
+      )}
+      <div className="">
         <h2 className="text-xl font-bold uppercase mb-4">Documents</h2>
         <div className="flex flex-col gap-4">
-          {datas.privateFiles.map((data, index) => (
+          {datas.private.files.map((data, index) => (
             <div
               key={index}
-              className="grid grid-cols-12 gap-2 bg-gray-semiLight rounded-lg p-4"
+              className="flex justify-between items-center gap-2 bg-gray-semiLight hover:bg-sky-100 hover:bg-opacity-50 rounded-lg p-4 group"
             >
-              <div className="col-span-4 flex items-center gap-2">
-                <div className="pr-2">{index + 1}</div>
-                <DocumentTextIcon className="w-8" />
+              <div className="flex items-center gap-2">
+              <FileIcon name={data.name} />
                 {shortFileName(data.name)}
               </div>
-              <div className="col-span-8 flex justify-end items-center">
-                <div className="flex items-center gap-2">
-                  <a
-                    href={data.src}
-                    download={data.name}
-                    className=" flex justify-center items-center gap-2 w-full select-none cursor-pointer text-center rounded-md font-lato px-2 py-1 text-sm bg-sky-400 text-white hover:bg-sky-500   "
-                  >
-                    Download
-                  </a>
-                  <Button
-                    type="orange"
-                    size="sm"
-                    title="Share"
-                    onClick={() => handleShareFile(data.name)}
-                  />
-                  <Button
-                    type="black"
-                    size="sm"
-                    title="Remove"
-                    onClick={() => handleDeleteFile(data.name)}
-                  />
-                </div>
+              <div className="flex justify-center items-center gap-4">
+                <EyeIcon
+                  className="w-5 hidden group-hover:block cursor-pointer opacity-70 hover:opacity-100 text-green-600"
+                  onClick={() => handlePreviewFile(data)}
+                />
+                <TrashIcon
+                  className="w-5 hidden group-hover:block cursor-pointer opacity-70 hover:opacity-100 text-red-600"
+                  onClick={() => handleDeleteFile(data.name)}
+                />
               </div>
+            </div>
+          ))}
+
+          {datas.private.folders.map((name, index) => (
+            <div
+              key={index}
+              className="flex justify-between items-center gap-2 bg-gray-semiLight hover:bg-sky-100 hover:bg-opacity-50 rounded-lg p-4 select-none group"
+            >
+              <Link
+                className="flex-1 flex items-center gap-2"
+                href={window.location.href + "/" + name}
+              >
+                <FolderIcon className="w-6" />
+                {name}
+              </Link>
+              <TrashIcon
+                className="w-5 hidden group-hover:block cursor-pointer opacity-70 hover:opacity-100 text-red-600"
+                onClick={() => handleDeleteFile(name)}
+              />
             </div>
           ))}
         </div>
       </div>
       <ShareModal isOpen={isOpen} setIsOpen={setIsOpen} name={fileName} />
+      <PreviewModal
+        isOpen={isPreview}
+        setIsOpen={setIsPreview}
+        data={selectedData}
+      />
     </div>
   )
 }

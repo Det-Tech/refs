@@ -6,16 +6,12 @@ import { usePathname } from "next/navigation"
 import { useRecoilValue } from "recoil"
 import Avatar from "./settings/Avatar"
 import { sessionStore } from "@/stores/system"
-import { menus } from "@/config/data"
 
 export default function Header() {
   const path = usePathname()
   const session = useRecoilValue(sessionStore)
-  const links = menus.map((menu) => {
-    return menu.link
-  })
 
-  if (!session.session || (!links.includes(path) && path !== "/setting")) {
+  if (!session.session || path === "/recover") {
     return <></>
   }
 

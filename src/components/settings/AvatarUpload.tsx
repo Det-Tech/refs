@@ -18,7 +18,7 @@ const AvatarUpload = () => {
         Account Setting
       </h2>
 
-      <h3 className="text-xl text-bold mb-4">Avatar</h3>
+      <h3 className="text-xl font-bold mb-4">Avatar</h3>
       <div className="flex items-center gap-6">
         <Avatar />
         <label

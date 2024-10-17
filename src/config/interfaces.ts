@@ -1,3 +1,5 @@
+import { Product } from "@/lib/data"
+
 export interface IMenu {
   icon: React.ForwardRefExoticComponent<
     React.PropsWithoutRef<React.SVGProps<SVGSVGElement>> & {
@@ -34,4 +36,28 @@ export interface IAlert {
   open: boolean
   message: React.ReactNode | undefined
   severity: string | undefined
+}
+
+export interface IPreview {
+  isOpen: boolean
+  setIsOpen: (val: boolean) => void
+  data: Product
+}
+
+export interface IConnectDevice {
+  isOpen: boolean
+  setIsOpen: (val: boolean) => void
+  qrCode: string
+  connectedLink: string
+}
+
+export interface IDelegateAccount {
+  isOpen: boolean
+  setIsOpen: (val: boolean) => void
+  pinInput: string
+  setPinInput: (val: string) => void
+  pinError: boolean
+  setPinError: (val: boolean) => void
+  cancelConnection: () => void
+  checkPin: () => void
 }

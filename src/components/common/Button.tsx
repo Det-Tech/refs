@@ -19,7 +19,7 @@ export default function Button({
   isShadow?: boolean
   isDisable?: boolean
 }) {
-  let btnClass = ` flex justify-center items-center gap-2 w-full select-none ${isDisable ? "cursor-not-allowed opacity-70" : "cursor-pointer"} text-center rounded-md ${isShadow && "shadow-btn"}`
+  let btnClass = ` flex justify-center items-center gap-2 select-none ${isDisable ? "cursor-not-allowed opacity-70" : "cursor-pointer"} text-center rounded-md ${isShadow && "shadow-btn"}`
 
   switch (size) {
     case "sm":
@@ -32,7 +32,7 @@ export default function Button({
       btnClass += " px-8 py-2.5 text-xl"
       break
     default:
-      btnClass += " px-4 py-1.5"
+      btnClass += " px-4 py-2"
   }
 
   switch (type) {
