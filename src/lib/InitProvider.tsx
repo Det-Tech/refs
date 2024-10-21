@@ -67,7 +67,7 @@ const InitProvider = ({ children }: { children: React.ReactNode }) => {
               id: user !== null ? user.id : 0,
               sharedList:
                 user !== null
-                  ? user.sharedList !== ""
+                  ? user.sharedList !== null
                     ? user.sharedList.split(",")
                     : []
                   : [],

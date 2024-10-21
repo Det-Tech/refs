@@ -118,7 +118,7 @@ export const register = async (hashedUsername: string): Promise<boolean> => {
       id: user !== null ? user.id : 0,
       sharedList:
         user !== null
-          ? user.sharedList !== ""
+          ? user.sharedList !== null
             ? user.sharedList.split(",")
             : []
           : [],
@@ -176,7 +176,7 @@ export const loadAccount = async (
       id: user !== null ? user.id : 0,
       sharedList:
         user !== null
-          ? user.sharedList !== ""
+          ? user.sharedList !== null
             ? user.sharedList.split(",")
             : []
           : [],

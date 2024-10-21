@@ -18,8 +18,9 @@ import "react-toastify/dist/ReactToastify.css"
 const ShareModal = (props: IShare) => {
   const { program } = useRecoilValue(sessionStore)
   const [shareWith, setShareWith] = useState<string>("")
+  const [shareWithSpecific, setShareWithSpecific] = useState<string>("")
   const [qrcode, setQrcode] = useState<string>("")
-  const [users, setUsers] = useState<IUser[] | null>(null)
+  const [users, setUsers] = useState<IUser[]>([])
   const [connectionLink, setConnectionLink] = useState<string>("")
   const [isInvalid, setIsInvalid] = useState<boolean>(false)
   const [isPending, setIsPending] = useState<boolean>(false)
@@ -47,7 +48,9 @@ const ShareModal = (props: IShare) => {
   const shareHandler = async () => {
     if (isPending) return
 
-    if (shareWith === "") {
+    const _shareWith = shareWithSpecific !== "" ? shareWithSpecific : shareWith
+    
+    if (_shareWith === "") {
       setIsInvalid(true)
       return
     } else {
@@ -71,7 +74,7 @@ const ShareModal = (props: IShare) => {
             odd.path.file(`${props.name}`)
           ),
         ],
-        { shareWith: shareWith }
+        { shareWith: _shareWith }
       )
 
       const origin = window.location.origin
@@ -107,6 +110,7 @@ const ShareModal = (props: IShare) => {
       severity: undefined,
     })
     setShareWith("")
+    setShareWithSpecific("")
     setConnectionLink("")
     setQrcode("")
   }, [setAlertState, props])
@@ -172,7 +176,7 @@ const ShareModal = (props: IShare) => {
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
-                <Dialog.Panel className="w-full max-w-md md:max-w-xl transform overflow-hidden rounded-xl bg-white px-8 py-10 text-left align-middle shadow-xl transition-all">
+                <Dialog.Panel className="w-full max-w-md md:max-w-xl transform rounded-xl bg-white px-8 py-10 text-left align-middle shadow-xl transition-all">
                   <Dialog.Title
                     as="h3"
                     className="text-3xl md:text-4xl text-center font-bionix"
@@ -200,7 +204,7 @@ const ShareModal = (props: IShare) => {
                       </div>
                       <div className="grid grid-cols-12 gap-2 mt-4">
                         <div className="col-span-3 content-center">
-                          Share With:{" "}
+                          Share With:{" "} 
                         </div>
                         <div className="col-span-9">
                           <Listbox value={shareWith} onChange={setShareWith}>
@@ -228,7 +232,7 @@ const ShareModal = (props: IShare) => {
                                 leaveFrom="opacity-100"
                                 leaveTo="opacity-0"
                               >
-                                <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-black-light border border-black-semiLight py-1 text-base shadow-lg focus:outline-none">
+                                <Listbox.Options className="absolute mt-1 max-h-32 w-full overflow-auto rounded-md bg-black-light border border-black-semiLight py-1 text-base shadow-lg focus:outline-none">
                                   {users !== null &&
                                     users.map((user: IUser, index: number) => (
                                       <Listbox.Option
@@ -272,6 +276,25 @@ const ShareModal = (props: IShare) => {
                               </Transition>
                             </div>
                           </Listbox>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-12 gap-2 mt-4 border-t border-gray-200 pt-4">
+                        <div className="col-span-3 content-center relative">
+                          Share To:{" "}
+                          <span className="absolute left-1 -bottom-3 text-gray-500 text-sm">
+                            (Optional)
+                          </span>
+                        </div>
+                        <div className="col-span-9 select-none">
+                          <input
+                            type="text"
+                            className="border border-gray-300 rounded-md px-4 py-2 w-full focus:outline-none"
+                            placeholder="Input specific person's name"
+                            value={shareWithSpecific}
+                            onChange={(e) =>
+                              setShareWithSpecific(e.target.value)
+                            }
+                          />
                         </div>
                       </div>
                     </>
