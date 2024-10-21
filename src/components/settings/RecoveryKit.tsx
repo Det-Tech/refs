@@ -33,7 +33,7 @@ export default function RecoveryKit() {
     if (downloadLinkRef && fileURL) {
       downloadLinkRef.current?.setAttribute(
         "download",
-        `Etherland-RecoveryKit-${session.username.trimmed}.txt`
+        `Etherland-RecoveryKit-${session.userInfo.trimmed}.txt`
       )
       downloadLinkRef.current.href = fileURL
     }

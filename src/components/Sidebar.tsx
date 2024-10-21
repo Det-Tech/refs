@@ -32,15 +32,15 @@ export default function Sidebar() {
           <Link
             key={index}
             href={menu.link}
-            className={`flex items-center gap-2 ${path === menu.link ? "bg-green" : "bg-gray-400 bg-opacity-30"} hover:bg-green w-full rounded-xl px-4 py-2`}
+            className={`flex items-center gap-3 ${path === menu.link ? "bg-green" : "bg-gray-400 bg-opacity-30"} hover:bg-green w-full rounded-xl px-4 py-2`}
           >
-            {<menu.icon className="w-10 h-10" />}
+            {<menu.icon className="w-9 h-9" />}
             {menu.title}
           </Link>
         ))}
       </div>
       <div
-        className="bg-green hover:bg-green-dark flex justify-center items-center gap-2 w-full rounded-full select-none cursor-pointer px-4 py-2"
+        className="bg-green hover:bg-green-dark flex justify-center items-center gap-3 w-full rounded-full select-none cursor-pointer px-4 py-2"
         onClick={() => disconnect()}
       >
         <ArrowLeftStartOnRectangleIcon className="w-6 h-6" />

@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 
 export function createClient() {
   const cookieStore = cookies();
-console.log("debug", process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY)
+
   return createServerClient(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_ANON_KEY!,

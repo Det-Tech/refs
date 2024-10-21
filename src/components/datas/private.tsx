@@ -7,6 +7,7 @@ import {
   DocumentIcon,
   EyeIcon,
   TrashIcon,
+  ShareIcon
 } from "@heroicons/react/24/outline"
 import { useRecoilValue } from "recoil"
 import Link from "next/link"
@@ -103,6 +104,10 @@ export default function PrivateData({ paths }: { paths: string[] }) {
                 <EyeIcon
                   className="w-5 hidden group-hover:block cursor-pointer opacity-70 hover:opacity-100 text-green-600"
                   onClick={() => handlePreviewFile(data)}
+                />
+                <ShareIcon
+                  className="w-5 hidden group-hover:block cursor-pointer opacity-70 hover:opacity-100 text-orange-400"
+                  onClick={() => handleShareFile(data.name)}
                 />
                 <TrashIcon
                   className="w-5 hidden group-hover:block cursor-pointer opacity-70 hover:opacity-100 text-red-600"

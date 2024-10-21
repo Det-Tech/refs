@@ -2,14 +2,16 @@ import type * as odd from "@oddjs/odd"
 
 import { appName } from "../config/app-info"
 
-type USERNAME = {
+type USERINFO = {
+  id: number
+  sharedList: string[]
   full: string
   hashed: string
   trimmed: string
 }
 
 export type SESSION = {
-  username: USERNAME
+  userInfo: USERINFO
   session: odd.Session | null
   authStrategy: odd.AuthenticationStrategy | null
   program: odd.Program 
@@ -39,7 +41,7 @@ export const errorToMessage = (error: SESSION_ERROR): string => {
 }
 
 export const initialSession: SESSION = {
-  username: null,
+  userInfo: null,
   session: null,
   authStrategy: null,
   program: null,

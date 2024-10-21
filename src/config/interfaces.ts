@@ -20,10 +20,12 @@ export interface IFile {
 }
 
 export interface IUser {
+  id: number
   name: string
   hashed: string
   fullName: string
   parent_id?: number
+  sharedList?: string
 }
 
 export interface IShare {
@@ -60,4 +62,12 @@ export interface IDelegateAccount {
   setPinError: (val: boolean) => void
   cancelConnection: () => void
   checkPin: () => void
+}
+
+export type ContactListTab = "all" | "shared"
+export interface IContactList {
+  tab: ContactListTab
+  searchName: string
+  all: IUser[]
+  shared: IUser[]
 }

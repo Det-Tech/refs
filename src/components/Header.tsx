@@ -23,7 +23,7 @@ export default function Header() {
       </Link>
       <div>
         <Link className="flex items-center gap-2" href="/setting">
-          <span>{session.username?.trimmed}</span>
+          <span>{session.userInfo?.trimmed}</span>
           <Avatar size="small" />
         </Link>
       </div>

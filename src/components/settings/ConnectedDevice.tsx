@@ -1,5 +1,4 @@
 import { useCallback, useState } from "react"
-import { useRouter } from "next/navigation"
 import { useRecoilState, useRecoilValue } from "recoil"
 import QRCode from "qrcode-svg"
 import ConnectModal from "../auth/link/ConnectModal"
@@ -71,8 +70,8 @@ export default function ConnectedDevice() {
   }
 
   const deviceConnectHandler = useCallback(() => {
-    const hashedUsername = session.username.hashed
-    const fullUsername = session.username.full
+    const hashedUsername = session.userInfo.hashed
+    const fullUsername = session.userInfo.full
 
     if (!hashedUsername || !fullUsername) return
 

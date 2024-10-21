@@ -120,7 +120,7 @@ const Recover = () => {
               <CheckIcon className="w-5"/> Account recovered!
             </h3>
             <p>
-              Welcome back <strong>{session.username.trimmed}.</strong><br/>
+              Welcome back <strong>{session.userInfo.trimmed}.</strong><br/>
               We were able to successfully recover all of your private data.
             </p>
           </>

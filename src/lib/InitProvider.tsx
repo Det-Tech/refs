@@ -43,8 +43,34 @@ const InitProvider = ({ children }: { children: React.ReactNode }) => {
             window.location.reload()
           }
 
+          let user = null
+
+          try {
+            const userInfo = await fetch("/api/addUser", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                name: fullUsername.split("#")[0],
+                hashed: program.session.username,
+                fullName: fullUsername,
+              }),
+            })
+            user = await userInfo.json()
+          } catch (error) {
+            throw new Error(error)
+          }
+
           setRecoil(sessionStore, {
-            username: {
+            userInfo: {
+              id: user !== null ? user.id : 0,
+              sharedList:
+                user !== null
+                  ? user.sharedList !== ""
+                    ? user.sharedList.split(",")
+                    : []
+                  : [],
               full: fullUsername,
               hashed: program.session.username,
               trimmed: fullUsername.split("#")[0],
@@ -61,7 +87,7 @@ const InitProvider = ({ children }: { children: React.ReactNode }) => {
           // Not authed
 
           setRecoil(sessionStore, {
-            username: null,
+            userInfo: null,
             session: null,
             authStrategy: program.auth,
             program,

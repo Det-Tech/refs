@@ -13,7 +13,7 @@ const Username = () => {
   const [isCopied, setIsCopied] = useState<boolean>(false)
 
   const handleCopyUsername = async (): Promise<void> => {
-    await clipboardCopy(session.username.hashed)
+    await clipboardCopy(session.userInfo.hashed)
     toast.success("Copied to clipboard")
     setIsCopied(true)
   }
@@ -30,9 +30,9 @@ const Username = () => {
     <div className="bg-white p-6 rounded-lg w-full">
       <h2 className="text-xl font-bold mb-2">Username</h2>
       <div className="flex flex-col gap-1">
-        <div>Name: {session.username.trimmed}</div>
+        <div>Name: {session.userInfo.trimmed}</div>
         <div className="flex">
-          <div className="break-words">Hashed: {session.username.hashed}</div>
+          <div className="break-words">Hashed: {session.userInfo.hashed}</div>
 
           {isCopied ? (
             <div className="flex justify-center gap-1 text-green-600 ml-2">

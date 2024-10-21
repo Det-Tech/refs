@@ -4,6 +4,7 @@ import {
   // DocumentChartBarIcon,
   CircleStackIcon,
   WifiIcon,
+  UsersIcon
 } from "@heroicons/react/24/outline"
 
 export const menus: IMenu[] = [
@@ -26,5 +27,10 @@ export const menus: IMenu[] = [
     icon: WifiIcon,
     title: "Access",
     link: "/access",
+  },
+  {
+    icon: UsersIcon,
+    title: "Contact List",
+    link: "/contactList",
   },
 ]

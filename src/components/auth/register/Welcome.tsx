@@ -19,7 +19,7 @@ const Welcome = () => {
       <div className="flex flex-col gap-6 w-full sm:w-96 mx-auto bg-black-light bg-opacity-80 rounded-xl px-8 py-10 mt-6 text-white">
         <div>
           <h3 className="mb-6 text-4xl font-bold text-center">
-            Welcome, {session.username?.trimmed}!
+            Welcome, {session.userInfo?.trimmed}!
           </h3>
           <div className="flex justify-center mb-4 text-base-content">
             <CheckCircleIcon className="w-32 h-32" />

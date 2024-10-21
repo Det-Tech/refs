@@ -7,6 +7,7 @@ import {
   DocumentIcon,
   EyeIcon,
   TrashIcon,
+  ShareIcon
 } from "@heroicons/react/24/outline"
 import { useRecoilValue } from "recoil"
 import Link from "next/link"
@@ -92,10 +93,17 @@ export default function PublicData({ paths }: { paths: string[] }) {
               </div>
               <div className="flex justify-center items-center gap-4">
                 <EyeIcon
+                  title="Preview"
                   className="w-5 hidden group-hover:block cursor-pointer opacity-70 hover:opacity-100 text-green-600"
                   onClick={() => handlePreviewFile(data)}
                 />
+                <ShareIcon
+                  title="Share"
+                  className="w-5 hidden group-hover:block cursor-pointer opacity-70 hover:opacity-100 text-orange-400"
+                  onClick={() => handlePreviewFile(data)}
+                />
                 <TrashIcon
+                  title="Delete"
                   className="w-5 hidden group-hover:block cursor-pointer opacity-70 hover:opacity-100 text-red-600"
                   onClick={() => handleDeleteFile(data.name)}
                 />

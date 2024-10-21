@@ -94,8 +94,9 @@ export const register = async (hashedUsername: string): Promise<boolean> => {
 
   const fullUsername = (await storage.getItem(USERNAME_STORAGE_KEY)) as string
 
+  let user = null
   try {
-    await fetch("/api/setUser", {
+    const userInfo = await fetch("/api/addUser", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -106,13 +107,21 @@ export const register = async (hashedUsername: string): Promise<boolean> => {
         fullName: fullUsername,
       }),
     })
+    user = await userInfo.json()
   } catch (error) {
-    
+    throw new Error(error)
   }
 
   setRecoil(sessionStore, {
     ...originalSession,
-    username: {
+    userInfo: {
+      id: user !== null ? user.id : 0,
+      sharedList:
+        user !== null
+          ? user.sharedList !== ""
+            ? user.sharedList.split(",")
+            : []
+          : [],
       full: fullUsername,
       hashed: hashedUsername,
       trimmed: fullUsername.split("#")[0],
@@ -143,9 +152,34 @@ export const loadAccount = async (
 
   await storage.setItem(USERNAME_STORAGE_KEY, fullUsername)
 
+  let user = null
+  try {
+    const userInfo = await fetch("/api/addUser", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: fullUsername.split("#")[0],
+        hashed: hashedUsername,
+        fullName: fullUsername,
+      }),
+    })
+    user = await userInfo.json()
+  } catch (error) {
+    throw new Error(error)
+  }
+
   setRecoil(sessionStore, {
     ...originalSession,
-    username: {
+    userInfo: {
+      id: user !== null ? user.id : 0,
+      sharedList:
+        user !== null
+          ? user.sharedList !== ""
+            ? user.sharedList.split(",")
+            : []
+          : [],
       full: fullUsername,
       hashed: hashedUsername,
       trimmed: fullUsername.split("#")[0],

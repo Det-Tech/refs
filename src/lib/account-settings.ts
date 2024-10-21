@@ -198,12 +198,12 @@ export const uploadAvatarToWNFS = async (image: File): Promise<void> => {
 }
 
 export const generateRecoveryKit = async (): Promise<string> => {
-  const { program, username } = getRecoil(sessionStore)
-  if (program === null || username === null) return ""
+  const { program, userInfo } = getRecoil(sessionStore)
+  if (program === null || userInfo === null) return ""
   const {
     components: { crypto, reference },
   } = program
-  const { full, hashed, trimmed } = username
+  const { full, hashed, trimmed } = userInfo
 
   // Get the user's read-key and base64 encode it
   const accountDID = await reference.didRoot.lookup(hashed)
