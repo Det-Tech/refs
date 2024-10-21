@@ -7,7 +7,7 @@ import {
   DocumentIcon,
   EyeIcon,
   TrashIcon,
-  ShareIcon
+  ShareIcon,
 } from "@heroicons/react/24/outline"
 import { useRecoilValue } from "recoil"
 import Link from "next/link"
@@ -97,7 +97,7 @@ export default function PrivateData({ paths }: { paths: string[] }) {
               className="flex justify-between items-center gap-2 bg-gray-semiLight hover:bg-sky-100 hover:bg-opacity-50 rounded-lg p-4 group"
             >
               <div className="flex items-center gap-2">
-              <FileIcon name={data.name} />
+                <FileIcon name={data.name} />
                 {shortFileName(data.name)}
               </div>
               <div className="flex justify-center items-center gap-4">

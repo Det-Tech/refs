@@ -14,7 +14,7 @@ export type SESSION = {
   userInfo: USERINFO
   session: odd.Session | null
   authStrategy: odd.AuthenticationStrategy | null
-  program: odd.Program 
+  program: odd.Program
   loading: boolean
   backupCreated: boolean
   error?: SESSION_ERROR

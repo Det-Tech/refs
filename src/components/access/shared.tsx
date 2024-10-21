@@ -62,11 +62,14 @@ export default function SharedData() {
     }
   }, [shareId, sharedBy])
 
-  const handleDeleteFile = useCallback(async (name: string) => {
-    await deleteFileFromWNFS(paths, name)
+  const handleDeleteFile = useCallback(
+    async (name: string) => {
+      await deleteFileFromWNFS(paths, name)
 
-    getFilesFromWNFS(paths)
-  }, [paths])
+      getFilesFromWNFS(paths)
+    },
+    [paths]
+  )
 
   return (
     <div>

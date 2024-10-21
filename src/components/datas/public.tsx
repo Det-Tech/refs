@@ -7,7 +7,7 @@ import {
   DocumentIcon,
   EyeIcon,
   TrashIcon,
-  ShareIcon
+  ShareIcon,
 } from "@heroicons/react/24/outline"
 import { useRecoilValue } from "recoil"
 import Link from "next/link"

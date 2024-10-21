@@ -36,7 +36,7 @@ const Tab = ({
 export default function ContactList() {
   const session = useRecoilValue(sessionStore)
   const [contactList, setContactList] = useRecoilState(contactListStore)
-  
+
   const fetchHandler = async () => {
     const _users = await fetch("/api/getUsers", {
       method: "POST",

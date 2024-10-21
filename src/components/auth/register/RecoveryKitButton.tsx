@@ -19,7 +19,7 @@ const RecoveryKitButton = ({ handleFileInput, state }: Props) => {
     [RECOVERY_STATES.Done]: {
       text: "Continue to the app",
       props: {
-        on_click: () => window.location.href = "/",
+        on_click: () => (window.location.href = "/"),
       },
     },
   }

@@ -9,7 +9,7 @@ const Recover = dynamic(() => import("@/components/auth/register/Recover"), {
 export default function RecoverPage() {
   return (
     <main className="flex flex-col flex-1 min-h-screen">
-      <Recover/>
+      <Recover />
     </main>
   )
 }

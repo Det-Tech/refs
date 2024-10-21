@@ -51,7 +51,6 @@ export default function DataUpload() {
       selectedArea: area,
     })
   }
-    
 
   useEffect(() => {
     if (paths.length === 0 && data.selectedArea === AREAS.SHARED) {

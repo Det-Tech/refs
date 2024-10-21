@@ -61,8 +61,8 @@ export default function ConnectedDevice() {
 
   const checkPin = () => {
     if (pin?.join("") === pinInput) {
-      console.log('debug', pin)
-      console.log('debug', confirmPin)
+      console.log("debug", pin)
+      console.log("debug", confirmPin)
       confirmPin()
     } else {
       setPinError(true)

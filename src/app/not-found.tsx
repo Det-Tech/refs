@@ -13,7 +13,7 @@ export default function NotFound() {
             href="/"
             className="flex items-center gap-2 text-sky hover:text-sky-400 text-xl sm:text-2xl uppercase tracking-widest border-b border-sky hover:border-sky-400"
           >
-            <HomeIcon className="w-6 h-6"/>
+            <HomeIcon className="w-6 h-6" />
             Go Home
           </Link>
         </div>

@@ -39,7 +39,7 @@ const AcceptModal = (props: IAccept) => {
         shareId: props.shareId,
         sharedBy: props.sharedBy,
       })
-      console.log('debug a', share)
+      console.log("debug a", share)
 
       const sharedLinks: SoftLink[] = softLinksOnly(await share.ls([]))
 
@@ -107,8 +107,12 @@ const AcceptModal = (props: IAccept) => {
                     />
                   </Dialog.Title>
                   <div className="grid grid-cols-12 gap-2 mt-6 mb-6">
-                    <div className="col-span-4 sm:col-span-3 content-center">Shared By: </div>
-                    <div className="col-span-8 sm:col-span-9 break-words">{props.sharedBy}</div>
+                    <div className="col-span-4 sm:col-span-3 content-center">
+                      Shared By:{" "}
+                    </div>
+                    <div className="col-span-8 sm:col-span-9 break-words">
+                      {props.sharedBy}
+                    </div>
                   </div>
                   <button
                     type="button"

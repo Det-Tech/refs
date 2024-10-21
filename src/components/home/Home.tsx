@@ -9,7 +9,7 @@ import Connect from "../auth/connect/Connect"
 export default function Home() {
   const router = useRouter()
   const session = useRecoilValue(sessionStore)
-  
+
   if (session.session) {
     router.push("/datas")
     // return <Dashboard />

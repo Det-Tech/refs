@@ -117,10 +117,11 @@ const Recover = () => {
         {state === RECOVERY_STATES.Done ? (
           <>
             <h3 className="flex justify-center items-center gap-2 font-normal text-base text-green-600">
-              <CheckIcon className="w-5"/> Account recovered!
+              <CheckIcon className="w-5" /> Account recovered!
             </h3>
             <p>
-              Welcome back <strong>{session.userInfo.trimmed}.</strong><br/>
+              Welcome back <strong>{session.userInfo.trimmed}.</strong>
+              <br />
               We were able to successfully recover all of your private data.
             </p>
           </>

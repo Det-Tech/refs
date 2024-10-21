@@ -14,9 +14,7 @@ const AvatarUpload = () => {
 
   return (
     <div className="bg-white w-full p-6 rounded-lg">
-      <h2 className="text-3xl font-bold uppercase mb-6">
-        Account Setting
-      </h2>
+      <h2 className="text-3xl font-bold uppercase mb-6">Account Setting</h2>
 
       <h3 className="text-xl font-bold mb-4">Avatar</h3>
       <div className="flex items-center gap-6">

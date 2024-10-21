@@ -10,9 +10,5 @@ export default function PropertiesLayout({
 }: {
   children: React.ReactNode
 }) {
-  return (
-    <div className="flex flex-col flex-1 bg-gray-light">
-      {children}
-    </div>
-  )
+  return <div className="flex flex-col flex-1 bg-gray-light">{children}</div>
 }

@@ -1,8 +1,5 @@
 import { useState, useCallback } from "react"
-import {
-  FolderPlusIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline"
+import { FolderPlusIcon, XMarkIcon } from "@heroicons/react/24/outline"
 import Button from "./Button"
 import { Spinner } from "./Loader"
 import { getFilesFromWNFS, createFolderToWNFS } from "@/lib/data"
@@ -11,7 +8,7 @@ import { type Data } from "@/lib/data"
 export default function CreateFolder({
   datas,
   setOpenCreateFolder,
-  paths
+  paths,
 }: {
   datas: Data
   setOpenCreateFolder: (val: boolean) => void
