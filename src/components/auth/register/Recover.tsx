@@ -5,8 +5,8 @@ import { useRecoilValue } from "recoil"
 import Link from "next/link"
 import RecoveryKitButton from "./RecoveryKitButton"
 import * as uint8arrays from "uint8arrays"
-import * as RootKey from "@oddjs/odd/common/root-key"
-import * as UCAN from "@oddjs/odd/ucan/index"
+import * as RootKey from "@etherland/odd/common/root-key"
+import * as UCAN from "@etherland/odd/ucan/index"
 import { sessionStore } from "@/stores/system"
 import {
   prepareUsername,

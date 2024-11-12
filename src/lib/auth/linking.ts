@@ -1,4 +1,4 @@
-import type * as odd from "@oddjs/odd"
+import type * as odd from "@etherland/odd"
 import { getRecoil } from "recoil-nexus"
 
 import { sessionStore } from "../../stores/system"

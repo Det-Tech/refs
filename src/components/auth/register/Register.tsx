@@ -59,10 +59,12 @@ const Register = () => {
     if (checkingUsername) {
       return
     }
-
+    console.log("b991232")
     setInitializingFilesystem(true)
+    console.log("b99")
 
     const registrationSuccessLocal = await register(encodedUsername)
+    console.log("sdfh")
     setRegistrationSuccess(registrationSuccessLocal)
 
     if (!registrationSuccessLocal) setInitializingFilesystem(false)

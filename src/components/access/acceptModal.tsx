@@ -7,9 +7,9 @@ import { filesystemStore, sessionStore } from "@/stores/system"
 
 import { getFilesFromWNFS, deleteFileFromWNFS, Data_DIRS } from "@/lib/data"
 import { AREAS } from "@/stores/data"
-import { Links } from "@oddjs/odd/fs/types"
-import { Link, SoftLink } from "@oddjs/odd/fs/types"
-import { isSoftLink } from "@oddjs/odd/fs/types/check"
+import { Links } from "@etherland/odd/fs/types"
+import { Link, SoftLink } from "@etherland/odd/fs/types"
+import { isSoftLink } from "@etherland/odd/fs/types/check"
 
 interface IAccept {
   isOpen: boolean

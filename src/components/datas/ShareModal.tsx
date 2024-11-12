@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useState } from "react"
 import { Dialog, Transition, Listbox } from "@headlessui/react"
-import * as odd from "@oddjs/odd"
+import * as odd from "@etherland/odd"
 import clipboardCopy from "clipboard-copy"
 import { useRecoilValue } from "recoil"
 import { getRecoil } from "recoil-nexus"

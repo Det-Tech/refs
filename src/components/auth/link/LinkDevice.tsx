@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import * as odd from "@oddjs/odd"
+import * as odd from "@etherland/odd"
 import { useSearchParams } from "next/navigation"
 import { toast } from "react-toastify"
 import clipboardCopy from "clipboard-copy"

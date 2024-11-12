@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect } from "react"
-import * as odd from "@oddjs/odd"
+import * as odd from "@etherland/odd"
 import { useRecoilValue } from "recoil"
 import { getRecoil, setRecoil } from "recoil-nexus"
 import { Spinner } from "@/components/common/Loader"
@@ -14,7 +14,7 @@ import { oddNamespace } from "@/config/app-info"
 const InitProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const initialHandler = async () => {
-      const odd = await import("@oddjs/odd")
+      const odd = await import("@etherland/odd")
 
       try {
         let backupStatus: BackupStatus = null

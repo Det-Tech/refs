@@ -12,7 +12,6 @@
   "dependencies": {
     "@headlessui/react": "^2.1.8",
     "@heroicons/react": "^2.1.5",
-    "@oddjs/odd": "^0.37.2",
     "@supabase/ssr": "^0.5.1",
     "clipboard-copy": "^4.0.1",
     "html-react-parser": "^5.1.16",

@@ -1,6 +1,6 @@
-import * as odd from "@oddjs/odd"
+import * as odd from "@etherland/odd"
 import { getRecoil } from "recoil-nexus"
-import type FileSystem from "@oddjs/odd/fs/index"
+import type FileSystem from "@etherland/odd/fs/index"
 
 import { filesystemStore } from "../../stores/system"
 

@@ -1,8 +1,8 @@
 import * as uint8arrays from "uint8arrays"
-import type FileSystem from "@oddjs/odd/fs/index"
-import { sha256 } from "@oddjs/odd/components/crypto/implementation/browser"
-import { publicKeyToDid } from "@oddjs/odd/did/transformers"
-import type { Crypto } from "@oddjs/odd"
+import type FileSystem from "@etherland/odd/fs/index"
+import { sha256 } from "@etherland/odd/components/crypto/implementation/browser"
+import { publicKeyToDid } from "@etherland/odd/did/transformers"
+import type { Crypto } from "@etherland/odd"
 import { getRecoil, setRecoil } from "recoil-nexus"
 
 import { filesystemStore, sessionStore } from "../../stores/system"

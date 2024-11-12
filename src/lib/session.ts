@@ -1,4 +1,4 @@
-import type * as odd from "@oddjs/odd"
+import type * as odd from "@etherland/odd"
 
 import { appName } from "../config/app-info"
 
