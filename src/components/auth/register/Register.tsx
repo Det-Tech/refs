@@ -55,10 +55,24 @@ const Register = () => {
     setCheckingUsername(false)
   }
 
+  // const handleEmailVerify = async () => {
+  //   const resEmailVerify = await 
+  // }
+
   const handleRegisterUser = async () => {
     if (checkingUsername) {
       return
     }
+    console.log("verify 1")
+    const response = await fetch("https://auth.etherland.world/api/v0/auth/email/verify", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ email: username})
+    })
+    console.log("response ", await response.json())
+
     console.log("handleRegisterUser 1")
     setInitializingFilesystem(true)
     console.log("handleRegisterUser 2")
