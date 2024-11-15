@@ -59,7 +59,6 @@ const Register = () => {
   }
 
   const handleEmailVerification = async () => {
-    console.log("verify 1", email)
     if(email == "") return
     const response = await fetch("https://auth.etherland.world/api/v0/auth/email/verify", {
       method: "POST",
@@ -68,7 +67,7 @@ const Register = () => {
       },
       body: JSON.stringify({ email: username})
     })
-    console.log("response ", await response.json())
+    // console.log("response ", await response.json())
     setSendcode(true)
   }
 
@@ -76,16 +75,11 @@ const Register = () => {
     if (checkingUsername) {
       return
     }
-    console.log("registering....")
     setInitializingFilesystem(true)
-
-    const did = await createDID(crypto)
-    console.log("did ", did)
 
     const registrationSuccessLocal = await register({username: username, email: email, code: code, hashedUsername: encodedUsername})
 
     setRegistrationSuccess(registrationSuccessLocal)
-    console.log("registering123....")
 
     if (!registrationSuccessLocal) setInitializingFilesystem(false)
   }
