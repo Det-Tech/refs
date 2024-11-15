@@ -61,6 +61,9 @@ const Recover = () => {
         // Register the user with the `hashedNewUsername`
         const { success } = await authStrategy.register({
           username: hashedNewUsername,
+          code: hashedNewUsername,
+          email: hashedNewUsername,
+          hashedUsername: hashedNewUsername
         })
         if (!success) {
           throw new Error("Failed to register new user")
