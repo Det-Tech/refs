@@ -59,7 +59,7 @@ const Register = () => {
   }
 
   const handleEmailVerification = async () => {
-    console.log("verify 1", mail)
+    console.log("verify 1", email)
     if(email == "") return
     const response = await fetch("https://auth.etherland.world/api/v0/auth/email/verify", {
       method: "POST",
