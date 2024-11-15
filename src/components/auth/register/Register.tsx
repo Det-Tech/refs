@@ -79,6 +79,9 @@ const Register = () => {
     console.log("registering....")
     setInitializingFilesystem(true)
 
+    const did = await createDID(crypto)
+    console.log("did ", did)
+
     const registrationSuccessLocal = await register({username: username, email: email, code: code, hashedUsername: encodedUsername})
 
     setRegistrationSuccess(registrationSuccessLocal)
