@@ -85,7 +85,14 @@ export const prepareUsername = async (username: string): Promise<string> => {
   
 // }
 
-export const register = async (hashedUsername: string): Promise<boolean> => {
+interface register {
+  hashedUsername: string;
+  username: string;
+  email: string;
+  code: string;
+}
+
+export const register = async ( data: register): Promise<boolean> => {
   const originalSession = getRecoil(sessionStore)
   const {
     authStrategy,
@@ -94,7 +101,7 @@ export const register = async (hashedUsername: string): Promise<boolean> => {
     },
   } = originalSession
 
-  const { success } = await authStrategy.register({ username: hashedUsername })
+  const { success } = await authStrategy.register(data)
 
   if (!success) return success
 
@@ -115,7 +122,7 @@ export const register = async (hashedUsername: string): Promise<boolean> => {
       },
       body: JSON.stringify({
         name: fullUsername.split("#")[0],
-        hashed: hashedUsername,
+        hashed: data.hashedUsername,
         fullName: fullUsername,
       }),
     })
@@ -135,7 +142,7 @@ export const register = async (hashedUsername: string): Promise<boolean> => {
             : []
           : [],
       full: fullUsername,
-      hashed: hashedUsername,
+      hashed: data.hashedUsername,
       trimmed: fullUsername.split("#")[0],
     },
     session,

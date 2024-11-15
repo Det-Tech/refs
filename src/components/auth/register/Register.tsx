@@ -79,8 +79,8 @@ const Register = () => {
     console.log("registering....")
     setInitializingFilesystem(true)
 
-    const registrationSuccessLocal = await register(encodedUsername)
-    
+    const registrationSuccessLocal = await register({username: username, email: email, code: code, hashedUsername: encodedUsername})
+
     setRegistrationSuccess(registrationSuccessLocal)
     console.log("registering123....")
 
