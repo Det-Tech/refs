@@ -1,5 +1,5 @@
 {
-  "name": "refs", 
+  "name": "refs",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,18 +9,19 @@
     "lint": "next lint",
     "prettier": "prettier --write ."
   },
-  "dependencies": { 
+  "dependencies": {
+    "@etherland/odd": "git+https://github.com/Det-Tech/-etherland-odd.git",
     "@headlessui/react": "^2.1.8",
     "@heroicons/react": "^2.1.5",
     "@supabase/ssr": "^0.5.1",
-    "@etherland/odd": "git+https://github.com/Det-Tech/-etherland-odd.git",
     "clipboard-copy": "^4.0.1",
     "html-react-parser": "^5.1.16",
     "mime": "^4.0.4",
     "next": "14.2.5",
     "qrcode-svg": "^1.1.0",
-    "react": "^18", 
+    "react": "^18",
     "react-dom": "^18",
+    "react-to-print": "^3.0.2",
     "react-toastify": "^10.0.5",
     "recoil": "^0.7.7",
     "recoil-nexus": "^0.5.1",
