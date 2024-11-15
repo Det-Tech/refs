@@ -19,7 +19,7 @@ export default function Connect() {
             type="orange"
             size="md"
             link="/register"
-            title="Connect this device"
+            title="Create"
             isSelf={true}
             LeftIcon={<ArrowLeftEndOnRectangleIcon className="w-5 h-5" />}
           />

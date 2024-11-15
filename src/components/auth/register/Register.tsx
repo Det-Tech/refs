@@ -27,6 +27,9 @@ const Register = () => {
   const [usernameAvailable] = useState(true)
   const [checkingUsername, setCheckingUsername] = useState(false)
   const [existingAccount, setExistingAccount] = useState(false)
+  const [sendCode, setSendcode] = useState(false)
+  const [email, setEmail] = useState("")
+  const [code, setCode] = useState("")
 
   const [buttonDisabled, setButtonDisabled] = useState(
     username.length === 0 ||
@@ -55,15 +58,9 @@ const Register = () => {
     setCheckingUsername(false)
   }
 
-  // const handleEmailVerify = async () => {
-  //   const resEmailVerify = await 
-  // }
-
-  const handleRegisterUser = async () => {
-    if (checkingUsername) {
-      return
-    }
+  const handleEmailVerification = async () => {
     console.log("verify 1")
+    if(email == "") return
     const response = await fetch("https://auth.etherland.world/api/v0/auth/email/verify", {
       method: "POST",
       headers: {
@@ -72,14 +69,17 @@ const Register = () => {
       body: JSON.stringify({ email: username})
     })
     console.log("response ", await response.json())
+    setSendcode(true)
+  }
 
-    console.log("handleRegisterUser 1")
+  const handleRegisterUser = async () => {
+    if (checkingUsername) {
+      return
+    }
+
     setInitializingFilesystem(true)
-    console.log("handleRegisterUser 2")
-    console.log("encodedUsername ", encodedUsername)
 
     const registrationSuccessLocal = await register(encodedUsername)
-    console.log("sdfh")
     setRegistrationSuccess(registrationSuccessLocal)
 
     if (!registrationSuccessLocal) setInitializingFilesystem(false)
@@ -101,12 +101,13 @@ const Register = () => {
   return (
     <div className="mt-44">
       <h1 className="text-4xl text-center font-bold text-white">
-        Connect this device
+        Create your account
       </h1>
       <div className="flex flex-col gap-6 w-96 mx-auto bg-black-light bg-opacity-80 rounded-xl px-8 py-10 mt-6 text-white">
         {/* Registration Form */}
+        {!sendCode&&
         <div className="w-full">
-          <h2 className="mb-2 font-semibold">Choose a username</h2>
+          <h2 className="mb-2 font-semibold">Choose your email</h2>
           <div className="relative">
             <input
               id="registration"
@@ -141,18 +142,102 @@ const Register = () => {
           )}
 
           <div className="text-left mt-4">
-            <input
-              type="checkbox"
-              id="shared-computer"
-              className="peer w-4 h-4 translate-y-0.5 mr-1"
-            />
-            {/* Warning when "This is a shared device" is checked */}
             <label
-              htmlFor="shared-computer"
-              className="cursor-pointer ml-1 text-sm grid-inline"
+              htmlFor="registration"
+              className="label mt-4 !p-0 hidden peer-checked:block"
             >
-              This is a public or shared device
+              <span className="text-red-400 text-left text-sm">
+                In order to ensure the security of your private data, the ODD
+                SDK does not recommend creating an account from a public or
+                shared device.
+              </span>
             </label>
+          </div>
+
+          <div className="flex items-center gap-4 mt-4">
+            <LinkButton
+              className="py-3"
+              link="/"
+              type="trans"
+              title="Cancel"
+              isSelf={true}
+            />
+            <Button
+              className="py-3"
+              isDisable={buttonDisabled}
+              type="sky"
+              title="Send a verification code"
+              onClick={() => handleEmailVerification()}
+            />
+          </div>
+        </div>
+        }
+
+        {/* Verify Form */}
+        {sendCode&&
+        <div className="w-full">
+          <h2 className="mb-2 font-semibold">Choose a verification code</h2>
+          <div className="relative">
+            <input
+              id="code"
+              type="text"
+              placeholder="Type here"
+              className={`input input-bordered bg-neutral-50 !text-neutral-900 dark:border-neutral-900 rounded-md focus:outline-none w-full px-4 py-3 block ${
+                !(username.length === 0) &&
+                usernameAvailable &&
+                usernameValid &&
+                !checkingUsername
+                  ? "!border-green-300"
+                  : ""
+              } ${
+                username.length !== 0 && (!usernameValid || !usernameAvailable)
+                  ? "!border-red-400"
+                  : ""
+              }`}
+              onChange={(e)=>setCode(e.target.value)}
+              onInput={handleCheckUsername}
+            />
+            {checkingUsername && (
+              <span className="rounded-lg border-t-2 border-l-2 border-base-content w-4 h-4 block absolute top-4 right-4 animate-spin" />
+            )}
+          </div>
+
+          <h2 className="mb-2 font-semibold">Choose a username</h2>
+          <div className="relative">
+            <input
+              id="username"
+              type="text"
+              placeholder="Type here"
+              className={`input input-bordered bg-neutral-50 !text-neutral-900 dark:border-neutral-900 rounded-md focus:outline-none w-full px-4 py-3 block ${
+                !(username.length === 0) &&
+                usernameAvailable &&
+                usernameValid &&
+                !checkingUsername
+                  ? "!border-green-300"
+                  : ""
+              } ${
+                username.length !== 0 && (!usernameValid || !usernameAvailable)
+                  ? "!border-red-400"
+                  : ""
+              }`}
+              onChange={(e) => setUsername(e.target.value)}
+              onInput={handleCheckUsername}
+            />
+            {checkingUsername && (
+              <span className="rounded-lg border-t-2 border-l-2 border-base-content w-4 h-4 block absolute top-4 right-4 animate-spin" />
+            )}
+          </div>
+
+          {!registrationSuccess && (
+            // Error when registration fails
+            <label htmlFor="registration" className="label">
+              <span className="text-xxs !p-0 text-error text-left">
+                There was an issue registering your account. Please try again.
+              </span>
+            </label>
+          )}
+
+          <div className="text-left mt-4">
             <label
               htmlFor="registration"
               className="label mt-4 !p-0 hidden peer-checked:block"
@@ -182,14 +267,10 @@ const Register = () => {
             />
           </div>
         </div>
+        }
+
         {/* Existing Account */}
         <div className="flex flex-col gap-5 w-full">
-          <Button
-            className="py-3"
-            onClick={() => setExistingAccount(!existingAccount)}
-            title="I have an existing account"
-            type="orange"
-          />
           {existingAccount && (
             <div className="flex flex-col gap-3 p-6 rounded bg-neutral-200 text-neutral-900 text-sm">
               <h3 className="font-bold text-center">
