@@ -59,7 +59,7 @@ const Register = () => {
   }
 
   const handleEmailVerification = async () => {
-    console.log("verify 1")
+    console.log("verify 1", mail)
     if(email == "") return
     const response = await fetch("https://auth.etherland.world/api/v0/auth/email/verify", {
       method: "POST",
@@ -76,11 +76,13 @@ const Register = () => {
     if (checkingUsername) {
       return
     }
-
+    console.log("registering....")
     setInitializingFilesystem(true)
 
     const registrationSuccessLocal = await register(encodedUsername)
+    
     setRegistrationSuccess(registrationSuccessLocal)
+    console.log("registering123....")
 
     if (!registrationSuccessLocal) setInitializingFilesystem(false)
   }
@@ -110,7 +112,7 @@ const Register = () => {
           <h2 className="mb-2 font-semibold">Choose your email</h2>
           <div className="relative">
             <input
-              id="registration"
+              id="email"
               type="text"
               placeholder="Type here"
               className={`input input-bordered bg-neutral-50 !text-neutral-900 dark:border-neutral-900 rounded-md focus:outline-none w-full px-4 py-3 block ${
@@ -125,6 +127,7 @@ const Register = () => {
                   ? "!border-red-400"
                   : ""
               }`}
+              onChange={(e) => setEmail(e.target.value)}
               onInput={handleCheckUsername}
             />
             {checkingUsername && (
