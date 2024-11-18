@@ -40,63 +40,63 @@ const Recover = () => {
           },
         } = session
 
-        const parts = (event.target.result as string)
-          .split("username: ")[1]
-          .split("key: ")
-        const readKey = uint8arrays.fromString(
-          parts[1].replace(/(\r\n|\n|\r)/gm, ""),
-          "base64pad"
-        )
+        // const parts = (event.target.result as string)
+        //   .split("username: ")[1]
+        //   .split("key: ")
+        // const readKey = uint8arrays.fromString(
+        //   parts[1].replace(/(\r\n|\n|\r)/gm, ""),
+        //   "base64pad"
+        // )
 
-        const oldUsername = parts[0].replace(/(\r\n|\n|\r)/gm, "")
-        const hashedOldUsername = await prepareUsername(oldUsername)
-        const newRootDID = await session.program.agentDID()
+        // const oldUsername = parts[0].replace(/(\r\n|\n|\r)/gm, "")
+        // const hashedOldUsername = await prepareUsername(oldUsername)
+        // const newRootDID = await session.program.agentDID()
 
-        // Construct a new username using the old `trimmed` name and `newRootDID`
-        const newUsername = `${oldUsername.split("#")[0]}#${newRootDID}`
-        const hashedNewUsername = await prepareUsername(newUsername)
+        // // Construct a new username using the old `trimmed` name and `newRootDID`
+        // const newUsername = `${oldUsername.split("#")[0]}#${newRootDID}`
+        // const hashedNewUsername = await prepareUsername(newUsername)
 
-        storage.setItem(USERNAME_STORAGE_KEY, newUsername)
+        // storage.setItem(USERNAME_STORAGE_KEY, newUsername)
 
-        // Register the user with the `hashedNewUsername`
-        const { success } = await authStrategy.register({
-          username: hashedNewUsername,
-          code: hashedNewUsername,
-          email: hashedNewUsername,
-          hashedUsername: hashedNewUsername
-        })
-        if (!success) {
-          throw new Error("Failed to register new user")
-        }
+        // // Register the user with the `hashedNewUsername`
+        // const { success } = await authStrategy.register({
+        //   username: hashedNewUsername,
+        //   // code: hashedNewUsername,
+        //   email: hashedNewUsername,
+        //   // hashedUsername: hashedNewUsername
+        // })
+        // if (!success) {
+        //   throw new Error("Failed to register new user")
+        // }
 
-        // Build an ephemeral UCAN to allow the
-        const proof: string | null = await storage.getItem(
-          storage.KEYS.ACCOUNT_UCAN
-        )
-        const ucan = await UCAN.build({
-          dependencies: session.program.components,
-          potency: "APPEND",
-          resource: "*",
-          proof: proof ? proof : undefined,
-          lifetimeInSeconds: 60 * 3, // Three minutes
-          audience: newRootDID,
-          issuer: newRootDID,
-        })
+        // // Build an ephemeral UCAN to allow the
+        // const proof: string | null = await storage.getItem(
+        //   storage.KEYS.ACCOUNT_UCAN
+        // )
+        // const ucan = await UCAN.build({
+        //   dependencies: session.program.components,
+        //   potency: "APPEND",
+        //   resource: "*",
+        //   proof: proof ? proof : undefined,
+        //   lifetimeInSeconds: 60 * 3, // Three minutes
+        //   audience: newRootDID,
+        //   issuer: newRootDID,
+        // })
 
-        const oldRootCID = await reference.dataRoot.lookup(hashedOldUsername)
+        // const oldRootCID = await reference.dataRoot.lookup(hashedOldUsername)
 
-        // Update the dataRoot of the new user
-        await reference.dataRoot.update(oldRootCID, ucan)
+        // // Update the dataRoot of the new user
+        // await reference.dataRoot.update(oldRootCID, ucan)
 
-        // Store the accountDID and readKey in odd so they can be used internally load the file system
-        await RootKey.store({
-          accountDID: newRootDID,
-          readKey,
-          crypto: crypto,
-        })
+        // // Store the accountDID and readKey in odd so they can be used internally load the file system
+        // await RootKey.store({
+        //   accountDID: newRootDID,
+        //   readKey,
+        //   crypto: crypto,
+        // })
 
-        // Load account data into sessionStore
-        await loadAccount(hashedNewUsername, newUsername)
+        // // Load account data into sessionStore
+        // await loadAccount(hashedNewUsername, newUsername)
 
         setState(RECOVERY_STATES.Done)
       } catch (error) {

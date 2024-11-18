@@ -15,7 +15,7 @@ import { isImage, isVideo, isPdf } from "@/utils/handler"
 import { ipfsGatewayUrl } from "@/config/app-info"
 import "react-toastify/dist/ReactToastify.css"
 
-const PreviewModal = (props: IPreview) => {
+const PreviewModal = (props: any) => {
   const data = useRecoilValue(dataStore)
 
   const closeHandler = () => {

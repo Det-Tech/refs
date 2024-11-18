@@ -44,6 +44,7 @@ export interface IPreview {
   isOpen: boolean
   setIsOpen: (val: boolean) => void
   data: Product
+  paths: string[]
 }
 
 export interface IConnectDevice {
@@ -70,4 +71,15 @@ export interface IContactList {
   searchName: string
   all: IUser[]
   shared: IUser[]
+}
+
+export interface IHistoryModal {
+  isOpen: boolean
+  setIsOpen: (val: boolean) => void
+  histories: IHistory[]
+}
+
+export interface IHistory {
+  delta: number
+  timestamp: number
 }

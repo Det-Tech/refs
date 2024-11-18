@@ -15,6 +15,7 @@ export type Product = {
   private: boolean
   size: number
   src: string
+  histories: []
 }
 
 export type Data = {
