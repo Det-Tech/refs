@@ -21,10 +21,13 @@ const InitProvider = ({ children }: { children: React.ReactNode }) => {
 
         const program: odd.Program = await odd.program({
           namespace: oddNamespace,
-          debug: process.env.NODE_ENV === "development",
+          debug: process.env.NODE_ENV === "test",
         })
 
+        console.log("initProvider ", program)
+
         if (program.session && program.session.fs) {
+          console.log("session success ")
           // Authed
           backupStatus = await getBackupStatus(program.session.fs)
 
@@ -85,7 +88,7 @@ const InitProvider = ({ children }: { children: React.ReactNode }) => {
           setRecoil(filesystemStore, program.session.fs)
         } else {
           // Not authed
-
+          console.log("Not authed ")
           setRecoil(sessionStore, {
             userInfo: null,
             session: null,

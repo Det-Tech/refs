@@ -46,12 +46,17 @@ export class Client {
    * @returns
    */
   static async create(opts) {
+    console.log("optos ", opts)
     const didString = DIDFission.format(opts.url)
-    const did = await DID.fromString(didString, {
-      resolvers: {
-        ...DIDFission.resolver,
-      },
-    })
+    console.log("did string ", didString)
+    const did = "ss"
+    // await DID.fromString(didString, {
+    //   resolvers: {
+    //     ...DIDFission.resolver,
+    //   },
+    // })
+
+    console.log("did  ", did)
     return new Client({
       ...opts,
       did,
@@ -76,14 +81,36 @@ export class Client {
       }
     )
   }
+  
+  async bearerToken (agent) {
+    try{
+      const { delegation, store } = await agent.delegate({
+        audience: this.audience,
+        ttl: TTL,
+        capabilities: {
+          [this.agent.did]: {
+            'account/create': [{}],
+          },
+        },
+      })
+  
+      const headers = Bearer.encode(delegation, store)
+    }catch(e){
+      console.log(e)
+    }
+  }
 
   /**
    * @param {T.AccountInput} input
    * @returns {Promise<T.MaybeResult<T.AccountInfo, T.ClientErrors>>}
    */
   async accountCreate(input) {
+    console.log("sirr accountCreate")
+    console.log("agent.did ", this.agent.did)
+    console.log("audience ", this.audience)
+    console.log("TTL ", TTL)
     const { delegation, store } = await this.agent.delegate({
-      audience: this.audience,
+      audience: "did:key:z6MkqQ61kTgoB3P5zAuHdtDQXqmuiVspiWZu4RmivuRJ9Zcp",
       ttl: TTL,
       capabilities: {
         [this.agent.did]: {
@@ -91,6 +118,9 @@ export class Client {
         },
       },
     })
+
+    console.log("delegation ", delegation)
+    console.log("store ", store)
 
     const headers = Bearer.encode(delegation, store)
     const account =
@@ -170,11 +200,12 @@ export class Client {
    * @param {T.LoginInput} input
    */
   async login(input) {
+    console.log("brooo")
     const parsed = Schemas.LoginInput.safeParse(input)
     if (!parsed.success) {
       return { error: parsed.error }
     }
-
+    console.log("really? ")
     const accountDid = await this.resolveHandle(input.username)
 
     if (accountDid.error) {

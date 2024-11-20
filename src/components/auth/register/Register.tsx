@@ -11,6 +11,8 @@ import {
   USERNAME_STORAGE_KEY,
 } from "@/lib/auth/account"
 import FilesystemActivity from "@/components/common/FilesystemActivity"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
+import { createAccount } from "./api"
 
 const Register = () => {
   const {
@@ -18,6 +20,7 @@ const Register = () => {
       components: { crypto, storage },
     },
   } = useRecoilValue(sessionStore)
+  const router = useRouter()
 
   const [initializingFilesystem, setInitializingFilesystem] = useState(false)
   const [registrationSuccess, setRegistrationSuccess] = useState(true)
@@ -75,13 +78,24 @@ const Register = () => {
     if (checkingUsername) {
       return
     }
+    
     setInitializingFilesystem(true)
 
-    const registrationSuccessLocal = await register({username: username, email: email, code: code, hashedUsername: encodedUsername})
+    const res = await createAccount({username: username, email: email, code: code,});
 
-    setRegistrationSuccess(registrationSuccessLocal)
+    console.log("create account res ", res)
+    // if(!res.error){
+    //   router.push("/access")
+    // }
 
-    if (!registrationSuccessLocal) setInitializingFilesystem(false)
+    console.log("sir123")
+   const registrationSuccessLocal = await register({username: username, email: email, code: code, hashedUsername: encodedUsername})
+   console.log("sir1!!!!!!!!!!!!")
+
+    // setRegistrationSuccess(registrationSuccessLocal)
+    setInitializingFilesystem(false)
+
+    // if (!registrationSuccessLocal) setInitializingFilesystem(false)
   }
 
   useEffect(() => {

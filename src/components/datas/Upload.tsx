@@ -8,6 +8,8 @@ import PublicData from "./Public"
 import PrivateData from "./Private"
 import { getFilesFromWNFS } from "@/lib/data"
 import { WifiIcon, CloudArrowUpIcon } from "@heroicons/react/24/outline"
+import { sessionStore, filesystemStore } from "@/stores/system"
+import { getRecoil, setRecoil } from "recoil-nexus"
 
 const Tab = ({
   isActive,
@@ -21,6 +23,15 @@ const Tab = ({
   changeTab: (val: string) => void
 }) => {
   const router = useRouter()
+
+  useEffect(() => {
+    console.log(sessionStore)
+    const { program, userInfo } = getRecoil(sessionStore)
+    const session = getRecoil(sessionStore)
+    console.log(session)
+    console.log(program)
+    console.log(userInfo)
+  }, [])
 
   return (
     <button
