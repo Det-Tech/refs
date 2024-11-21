@@ -100,11 +100,12 @@ export const register = async ( data: register): Promise<boolean> => {
       components: { storage },
     },
   } = originalSession
-
+  console.log("register start.....")
   const { success } = await authStrategy.register(data)
-
+  console.log("register success.....", success)
   if (!success) return success
 
+  console.log("session start.....")
   const session = await authStrategy.session()
   setRecoil(filesystemStore, session?.fs || null)
 
