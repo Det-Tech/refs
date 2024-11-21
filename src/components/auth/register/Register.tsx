@@ -52,6 +52,7 @@ const Register = () => {
      * via a `#`, hashed and encoded to ensure uniqueness
      */
     const did = await createDID(crypto)
+    console.log(" did ", did)
     const fullUsername = `${value}#${did}`
     await storage.setItem(USERNAME_STORAGE_KEY, fullUsername)
 
@@ -62,6 +63,9 @@ const Register = () => {
   }
 
   const handleEmailVerification = async () => {
+    const did = await createDID(crypto)
+    console.log(" did ", did)
+
     if(email == "") return
     const response = await fetch("https://auth.etherland.world/api/v0/auth/email/verify", {
       method: "POST",
