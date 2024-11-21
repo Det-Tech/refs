@@ -10,7 +10,6 @@
     "prettier": "prettier --write ."
   },
   "dependencies": {
-    "@etherland/odd": "git+https://github.com/Det-Tech/-etherland-odd.git",
     "@headlessui/react": "^2.1.8",
     "@heroicons/react": "^2.1.5",
     "@supabase/ssr": "^0.5.1",
