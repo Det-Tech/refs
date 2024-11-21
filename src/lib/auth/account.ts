@@ -107,10 +107,15 @@ export const register = async ( data: register): Promise<boolean> => {
 
   console.log("session start.....")
   const session = await authStrategy.session()
+
+  console.log("session success.....", success)
+
   setRecoil(filesystemStore, session?.fs || null)
 
+  console.log("initializeFilesystem start.....")
   // TODO Remove if only public and private directories are needed
   await initializeFilesystem(session?.fs as FileSystem)
+  console.log("initializeFilesystem success.....")
 
   const fullUsername = (await storage.getItem(USERNAME_STORAGE_KEY)) as string
 
