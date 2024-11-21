@@ -105,7 +105,7 @@ export const register = async ( data: register): Promise<boolean> => {
   console.log("register success.....", success)
   if (!success) return success
 
-  console.log("session start.....")
+  console.log("session start.....** ")
   const session = await authStrategy.session()
 
   console.log("session success.....", success)
