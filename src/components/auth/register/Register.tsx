@@ -12,7 +12,7 @@ import {
 } from "@/lib/auth/account"
 import FilesystemActivity from "@/components/common/FilesystemActivity"
 import { useSearchParams, useRouter, usePathname } from "next/navigation"
-import { createAccount } from "./api"
+import { createAccount, getAccountInfo } from "./api"
 
 const Register = () => {
   const {
@@ -62,6 +62,18 @@ const Register = () => {
     setCheckingUsername(false)
   }
 
+  const getAccount = async () => {
+    const did = await createDID(crypto)
+    console.log(" did ", did)
+    const res = await getAccountInfo(did)
+    console.log("res ", res)
+  }
+
+  useEffect(() => {
+    console.log("did")
+    getAccount()
+  }, [])
+
   const handleEmailVerification = async () => {
     const did = await createDID(crypto)
     console.log(" did ", did)
@@ -87,7 +99,7 @@ const Register = () => {
 
     const res = await createAccount({username: username, email: email, code: code,});
 
-    console.log("create account res ", res)
+    console.log("create account res ", res);
     // if(!res.error){
     //   router.push("/access")
     // }

@@ -60,3 +60,27 @@ export async function createAccount({username, email, code}: iCreateAccount) {
     //   agent,
     // }
   }
+
+  /**
+ * getAccountInfo
+ */
+export async function getAccountInfo(did) {
+  
+  const agent = await Agent.create({
+    resolveSigner,
+  })
+
+  console.log("agent ", agent)
+
+  const client = await Client.create({
+    url: SERVER_URL,
+    agent,
+  })
+
+  console.log("client ", client)
+
+  const accountInfo = await client.accountInfo(did)
+
+  console.log("accountInfo ", accountInfo)
+  return accountInfo
+}
