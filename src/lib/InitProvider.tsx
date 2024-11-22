@@ -13,6 +13,7 @@ import { oddNamespace } from "@/config/app-info"
 
 const InitProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
+    console.log("init provider bro")
     const initialHandler = async () => {
       const odd = await import("@etherland/odd")
 
