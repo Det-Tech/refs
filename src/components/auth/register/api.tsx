@@ -50,6 +50,7 @@ export async function createAccount({username, email, code}: iCreateAccount) {
     })
 
     console.log("createAccount ", createAccount)
+    console.log("client ", client)
     return createAccount
     // if (createAccount.error) {
   
