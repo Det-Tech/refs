@@ -51,6 +51,12 @@ export async function createAccount({username, email, code}: iCreateAccount) {
 
     console.log("createAccount ", createAccount)
     console.log("client ", client)
+
+    console.log("accountInfo ", client)
+
+    const accountInfo = await client.accountInfo(createAccount.result.did)
+    console.log("accountInfo ", accountInfo)
+
     return createAccount
     // if (createAccount.error) {
   

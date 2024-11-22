@@ -99,8 +99,8 @@ const Register = () => {
 
     const res = await createAccount({username: username, email: email, code: code,});
     console.log("create account res ", res);
-    const res1 = await getAccountInfo(res.result.did)
-    console.log("create account res1 ", res1);
+    // const res1 = await getAccountInfo(res.result.did)
+    // console.log("create account res1 ", res1);
     // if(!res.error){
     //   router.push("/access")
     // }
