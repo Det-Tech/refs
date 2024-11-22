@@ -52,7 +52,7 @@ const Register = () => {
      * via a `#`, hashed and encoded to ensure uniqueness
      */
     const did = await createDID(crypto)
-    console.log(" did ", did)
+    console.log(" did 1 ", did)
     const fullUsername = `${value}#${did}`
     await storage.setItem(USERNAME_STORAGE_KEY, fullUsername)
 
@@ -64,8 +64,8 @@ const Register = () => {
 
   const getAccount = async () => {
     const did = await createDID(crypto)
-    console.log(" did ", did)
-    const res = await getAccountInfo(did)
+    console.log(" did3 ", did)
+    const res = await getAccountInfo("ss")
     console.log("res ", res)
   }
 
