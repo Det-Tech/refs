@@ -65,7 +65,7 @@ const Register = () => {
   const getAccount = async () => {
     const did = await createDID(crypto)
     console.log(" did3 ", did)
-    const res = await getAccountInfo("ss")
+    const res = await getAccountInfo("did:key:z6MkkZe7aVxN48TcbfvVLXovgSzQXqnBfEpPPKJL5YKkp2Xk")
     console.log("res ", res)
   }
 
