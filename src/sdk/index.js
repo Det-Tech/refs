@@ -148,8 +148,9 @@ export class Client {
    * @returns {Promise<T.MaybeResult<T.AccountInfo, T.ClientErrors>>}
    */
   async accountInfo(accountDid) {
+    console.log("accountInfo ", this.audience)
     const { delegation, store } = await this.agent.delegate({
-      audience: this.audience,
+      audience: "did:key:z6MkqQ61kTgoB3P5zAuHdtDQXqmuiVspiWZu4RmivuRJ9Zcp",
       ttl: TTL,
       capabilities: {
         [accountDid]: {
