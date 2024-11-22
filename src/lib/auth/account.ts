@@ -32,7 +32,8 @@ export const isUsernameValid = async (username: string): Promise<boolean> => {
 export const isUsernameAvailable = async (
   username: string
 ): Promise<boolean> => {
-  const session = getRecoil(sessionStore)
+  const session = getRecoil(sessionStore);
+  console.log("refs isUsernameAvailable ...")
   return (
     session.authStrategy !== null &&
     session.authStrategy.isUsernameAvailable(username)
