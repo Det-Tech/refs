@@ -71,17 +71,18 @@ export async function getAccountInfo(did) {
     resolveSigner,
   })
 
-  console.log("agent ", agent)
+  console.log("getAccountInfo agent ", agent)
 
   const client = await Client.create({
     url: SERVER_URL,
     agent,
   })
 
-  console.log("client ", client)
+  console.log("getAccountInfo client ", client)
+  console.log("getAccountInfo did ", did)
 
   const accountInfo = await client.accountInfo(did)
 
-  console.log("accountInfo ", accountInfo)
+  console.log("getAccountInfo accountInfo ", accountInfo)
   return accountInfo
 }

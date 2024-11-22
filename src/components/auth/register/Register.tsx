@@ -98,10 +98,9 @@ const Register = () => {
     setInitializingFilesystem(true)
 
     const res = await createAccount({username: username, email: email, code: code,});
-    const res1 = await getAccountInfo(res.result.did)
-
-    console.log("create account res1 ", res1);
     console.log("create account res ", res);
+    const res1 = await getAccountInfo(res.result.did)
+    console.log("create account res1 ", res1);
     // if(!res.error){
     //   router.push("/access")
     // }
