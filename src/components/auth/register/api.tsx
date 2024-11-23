@@ -3,6 +3,7 @@ import { EdDSASigner } from 'iso-signatures/signers/eddsa.js'
 import pdefer from 'p-defer'
 import { Agent } from '@fission-codes/ucan/agent'
 import { Client, JsonError } from '../../../sdk/index'
+import { decodeCID } from './cid'
 
 const SERVER_URL = process.env.SERVER_URL || 'https://auth.etherland.world'
 
@@ -27,6 +28,14 @@ interface iCreateAccount {
  * Create an account
  */
 export async function createAccount({username, email, code}: iCreateAccount) {
+  // try{
+  //   const s = {"did":"did:key:z6Mkf4S9TrvLKZiGezu8TD73ChZc8FNqXPagx4aTsFsmJtFj","username":"acco.localhost","email":"acco@gmail.com"}
+  //   const data  = await decodeCID(s);
+  //   console.log(data)
+  // }catch(e){
+  //   console.log(e)
+  // }
+  // return
   
     const agent = await Agent.create({
       resolveSigner,

@@ -6,6 +6,7 @@ import Button from "@/components/common/Button"
 import LinkButton from "@/components/common/LinkButton"
 import {
   createDID,
+  emailVerify,
   prepareUsername,
   register,
   USERNAME_STORAGE_KEY,
@@ -79,13 +80,18 @@ const Register = () => {
     console.log(" did ", did)
 
     if(email == "") return
-    const response = await fetch("https://auth.etherland.world/api/v0/auth/email/verify", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({ email: username})
-    })
+   
+    console.group("email start ", email)
+    const res = await emailVerify(email);
+    console.group("email finish", res)
+
+    // const response = await fetch("https://auth.etherland.world/api/v0/auth/email/verify", {
+    //   method: "POST",
+    //   headers: {
+    //     "content-type": "application/json"
+    //   },
+    //   body: JSON.stringify({ email: email})
+    // })
     // console.log("response ", await response.json())
     setSendcode(true)
   }
@@ -97,8 +103,8 @@ const Register = () => {
     
     setInitializingFilesystem(true)
 
-    const res = await createAccount({username: username, email: email, code: code,});
-    console.log("create account res ", res);
+    // const res = await createAccount({username: username, email: email, code: code,});
+    // console.log("create account res ", res);
     // const res1 = await getAccountInfo(res.result.did)
     // console.log("create account res1 ", res1);
     // if(!res.error){

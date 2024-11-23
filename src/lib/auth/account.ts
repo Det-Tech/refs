@@ -74,17 +74,19 @@ export const prepareUsername = async (username: string): Promise<string> => {
   return uint8arrays.toString(hashedUsername, "base32").slice(0, 32)
 }
 
-// export const emailVerify =async (email:string) => {
-//   const originalSession = getRecoil(sessionStore)
-//   const {
-//     authStrategy,
-//     program: {
-//       components: { storage },
-//     },
-//   } = originalSession
-//   const { success } = await authStrategy
-  
-// }
+export const emailVerify =async (email:string) => {
+  const originalSession = getRecoil(sessionStore)
+  const {
+    authStrategy,
+    program: {
+      components: { storage },
+    },
+  } = originalSession
+
+  const { success } = await authStrategy.emailVerify({email});
+  console.log("email verify ", success)
+
+}
 
 interface register {
   hashedUsername: string;
