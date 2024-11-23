@@ -103,7 +103,8 @@ const Register = () => {
     
     setInitializingFilesystem(true)
 
-    // const res = await createAccount({username: username, email: email, code: code,});
+    const res = await createAccount({username: username, email: email, code: code,});
+    return
     // console.log("create account res ", res);
     // const res1 = await getAccountInfo(res.result.did)
     // console.log("create account res1 ", res1);
