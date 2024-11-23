@@ -82,10 +82,8 @@ export const emailVerify =async (email:string) => {
       components: { storage },
     },
   } = originalSession
-  
-  const auth: any = authStrategy;
 
-  const { success } = await auth.emailVerify({email});
+  const { success } = await authStrategy.emailVerify({email});
   console.log("email verify ", success)
 
 }

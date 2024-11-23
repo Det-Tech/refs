@@ -1,0 +1,2249 @@
+diff --git a/node_modules/@etherland/odd/lib/sdk/index.js b/node_modules/@etherland/odd/lib/sdk/index.js
+new file mode 100644
+index 0000000..187449d
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/index.js
+@@ -0,0 +1,406 @@
++import { request } from 'iso-web/http'
++import { resolve } from 'iso-web/doh'
++import { DID } from 'iso-did'
++import * as DIDFission from 'iso-did/fission'
++import { UCAN } from '@fission-codes/ucan'
++import * as Bearer from '@fission-codes/ucan/bearer'
++import * as Schemas from './schemas.js'
++
++// eslint-disable-next-line no-unused-vars
++import * as T from './types.js'
++
++export {
++  AbortError,
++  HttpError,
++  JsonError,
++  NetworkError,
++  RequestError,
++  RetryError,
++  TimeoutError,
++  isRequestError,
++} from 'iso-web/http'
++
++const TTL = 15 // 15 seconds
++
++export class Client {
++  #baseUrl = ''
++
++  /**
++   * @type {T.Session | undefined}
++   */
++  session = undefined
++
++  /**
++   * @param {T.ClientOptions} opts
++   */
++  constructor(opts) {
++    this.#baseUrl = opts.url
++    this.did = opts.did
++    this.audience = opts.did.didKey
++    this.agent = opts.agent
++  }
++
++  /**
++   *
++   * @param {Omit<T.ClientOptions, 'did'>} opts
++   * @returns
++   */
++  static async create(opts) {
++    console.log("optos ", opts)
++    const didString = DIDFission.format(opts.url)
++    console.log("did string ", didString)
++    const did = "ss"
++    // await DID.fromString(didString, {
++    //   resolvers: {
++    //     ...DIDFission.resolver,
++    //   },
++    // })
++
++    console.log("did  ", did)
++    return new Client({
++      ...opts,
++      did,
++    })
++  }
++
++  /**
++   * Trigger email verification
++   *
++   * @see https://github.com/fission-codes/fission-server/blob/main/design/api.md#post-apiv0authemailverify
++   *
++   * @param {string} email
++   * @returns {Promise<T.MaybeResult<T.ResponseSuccess, T.ClientErrors>>}
++   */
++  async verifyEmail(email) {
++    return await request.json.post(
++      new URL('/api/v0/auth/email/verify', this.#baseUrl),
++      {
++        body: {
++          email,
++        },
++      }
++    )
++  }
++  
++  async bearerToken (agent) {
++    try{
++      const { delegation, store } = await agent.delegate({
++        audience: this.audience,
++        ttl: TTL,
++        capabilities: {
++          [this.agent.did]: {
++            'account/create': [{}],
++          },
++        },
++      })
++  
++      const headers = Bearer.encode(delegation, store)
++    }catch(e){
++      console.log(e)
++    }
++  }
++
++  /**
++   * @param {T.AccountInput} input
++   * @returns {Promise<T.MaybeResult<T.AccountInfo, T.ClientErrors>>}
++   */
++  async accountCreate(input) {
++    console.log("sirr accountCreate")
++    console.log("agent.did ", this.agent.did)
++    console.log("audience ", this.audience)
++    console.log("TTL ", TTL)
++    const { delegation, store } = await this.agent.delegate({
++      audience: "did:key:z6MkqQ61kTgoB3P5zAuHdtDQXqmuiVspiWZu4RmivuRJ9Zcp",
++      ttl: TTL,
++      capabilities: {
++        [this.agent.did]: {
++          'account/create': [{}],
++        },
++      },
++    })
++
++    console.log("delegation ", delegation)
++    console.log("store ", store)
++
++    const headers = Bearer.encode(delegation, store)
++    const account =
++      await /** @type {typeof request.json.post<import('./types.js').Session>} */ (
++        request.json.post
++      )(new URL('/api/v0/account', this.#baseUrl), {
++        body: input,
++        headers,
++      })
++
++    if (account.error) {
++      return { error: account.error }
++    }
++
++    await this.agent.saveProofs(
++      await Promise.all(account.result.ucans.map((ucan) => UCAN.fromUcan(ucan)))
++    )
++
++    this.session = account.result
++    return { result: account.result.account }
++  }
++
++  /**
++   * @param {T.DID} accountDid
++   * @returns {Promise<T.MaybeResult<T.AccountInfo, T.ClientErrors>>}
++   */
++  async accountInfo(accountDid) {
++    console.log("accountInfo ", this.audience)
++    const { delegation, store } = await this.agent.delegate({
++      audience: "did:key:z6MkqQ61kTgoB3P5zAuHdtDQXqmuiVspiWZu4RmivuRJ9Zcp",
++      ttl: TTL,
++      capabilities: {
++        [accountDid]: {
++          'account/info': [{}],
++        },
++      },
++    })
++
++    const headers = Bearer.encode(delegation, store)
++    const account =
++      await /** @type {typeof request.json.get<T.AccountInfo>} */ (
++        request.json.get
++      )(new URL('/api/v0/account', this.#baseUrl), {
++        headers,
++      })
++
++    return account
++  }
++
++  /**
++   * @param {T.DID} accountDid
++   * @returns {Promise<T.MaybeResult<T.AccountMemberNumber, T.ClientErrors>>}
++   */
++  async accountMemberNumber(accountDid) {
++    const { delegation, store } = await this.agent.delegate({
++      audience: this.audience,
++      ttl: TTL,
++      capabilities: {
++        [accountDid]: {
++          'account/info': [{}],
++        },
++      },
++    })
++
++    const headers = Bearer.encode(delegation, store)
++    const account =
++      await /** @type {typeof request.json.get<T.AccountMemberNumber>} */ (
++        request.json.get
++      )(new URL('/api/v0/account/member-number', this.#baseUrl), {
++        headers,
++      })
++
++    return account
++  }
++
++  /**
++   *
++   * @param {T.LoginInput} input
++   */
++  async login(input) {
++    console.log("brooo")
++    const parsed = Schemas.LoginInput.safeParse(input)
++    if (!parsed.success) {
++      return { error: parsed.error }
++    }
++    console.log("really? ")
++    const accountDid = await this.resolveHandle(input.username)
++
++    if (accountDid.error) {
++      return { error: accountDid.error }
++    }
++
++    const link = await this.accountLink(accountDid.result[0], input.code)
++
++    if (link.error) {
++      return { error: link.error }
++    }
++
++    return { result: link.result }
++  }
++
++  async logout() {
++    return this.agent.store.clear()
++  }
++
++  /**
++   * Get a UCAN for a DID that hasn't been associated with this account yet, given an email verification code.
++   *
++   * @see https://github.com/fission-codes/fission-server/blob/main/design/api.md#post-apiv0accountdidlink
++   * @param {T.DID} accountDid
++   * @param {string} code
++   * @returns {Promise<T.MaybeResult<T.AccountInfo, T.ClientErrors>>}
++   */
++  async accountLink(accountDid, code) {
++    const { delegation, store } = await this.agent.delegate({
++      audience: this.audience,
++      ttl: TTL,
++      capabilities: {
++        [this.agent.did]: {
++          'account/link': [{}],
++        },
++      },
++    })
++
++    const headers = Bearer.encode(delegation, store)
++    const account =
++      await /** @type {typeof request.json.post<import('./types.js').Session>} */ (
++        request.json.post
++      )(new URL(`/api/v0/account/${accountDid}/link`, this.#baseUrl), {
++        body: {
++          code,
++        },
++        headers,
++      })
++
++    if (account.error) {
++      return account
++    }
++
++    await this.agent.saveProofs(
++      await Promise.all(account.result.ucans.map((ucan) => UCAN.fromUcan(ucan)))
++    )
++
++    this.session = account.result
++    return { result: account.result.account }
++  }
++
++  /**
++   * Change the account's username. The account DID to change is determined by the resource DID in the authorization UCAN.
++   *
++   * @see https://github.com/fission-codes/fission-server/blob/main/design/api.md#patch-apiv0accountusernameusername
++   * @param {T.DID} accountDid
++   * @param {string} username
++   * @returns {Promise<T.MaybeResult<T.ResponseSuccess, T.ClientErrors>>}
++   */
++  async accountManageUsername(accountDid, username) {
++    const { delegation, store } = await this.agent.delegate({
++      audience: this.audience,
++      ttl: TTL,
++      capabilities: {
++        [accountDid]: {
++          'account/manage': [{}],
++        },
++      },
++    })
++
++    const headers = Bearer.encode(delegation, store)
++
++    const account =
++      await /** @type {typeof request.json.get<T.ResponseSuccess>} */ (
++        request.json.patch
++      )(new URL(`/api/v0/account/username/${username}`, this.#baseUrl), {
++        headers,
++      })
++
++    return account
++  }
++
++  /**
++   * Associate a domain name with an existing account. This will function as the username for the account in the future.
++   *
++   * @see https://github.com/fission-codes/fission-server/blob/main/design/api.md#patch-apiv0accounthandlehandle
++   * @param {T.DID} accountDid
++   * @param {string} handle
++   * @returns {Promise<T.MaybeResult<T.ResponseSuccess, T.ClientErrors>>}
++   */
++  async accountManageHandle(accountDid, handle) {
++    const { delegation, store } = await this.agent.delegate({
++      audience: this.audience,
++      ttl: TTL,
++      capabilities: {
++        [accountDid]: {
++          'account/manage': [{}],
++        },
++      },
++    })
++
++    const headers = Bearer.encode(delegation, store)
++
++    const account =
++      await /** @type {typeof request.json.get<T.ResponseSuccess>} */ (
++        request.json.patch
++      )(new URL(`/api/v0/account/handle/${handle}`, this.#baseUrl), {
++        headers,
++      })
++
++    return account
++  }
++
++  /**
++   * Delete an account.
++   *
++   * @see https://github.com/fission-codes/fission-server/blob/main/design/api.md#delete-apiv0account
++   * @param {T.DID} accountDid
++   * @returns {Promise<T.MaybeResult<T.AccountInfo, T.ClientErrors>>}
++   */
++  async accountDelete(accountDid) {
++    const { delegation, store } = await this.agent.delegate({
++      audience: this.audience,
++      ttl: TTL,
++      capabilities: {
++        [accountDid]: {
++          'account/delete': [{}],
++        },
++      },
++    })
++
++    const headers = Bearer.encode(delegation, store)
++
++    const account =
++      await /** @type {typeof request.json.get<T.AccountInfo>} */ (
++        request.json.delete
++      )(new URL(`/api/v0/account`, this.#baseUrl), {
++        headers,
++      })
++
++    return account
++  }
++
++  /**
++   * Resolve account DID from account handle
++   *
++   * @param {string} handle - The account handle <username>.<domain>
++   */
++  async resolveHandle(handle) {
++    /** @type {T.MaybeResult<T.DID[], import('iso-web/doh').Errors>} */
++    const out = await resolve(`_did.${handle}`, 'TXT', {
++      server: new URL(`/dns-query`, this.#baseUrl).toString(),
++    })
++
++    return out
++  }
++
++  /**
++   * This returns the set of UCANs in UCAN chains that have the authorization UCAN's resource DID as final audience.
++   *
++   * @see https://github.com/fission-codes/fission-server/blob/main/design/api.md#get-apiv0capabilities
++   * @param {T.DID} accountDid
++   * @returns {Promise<T.MaybeResult<T.AccountInfo, T.ClientErrors>>}
++   */
++  async capabilityFetch(accountDid) {
++    const { delegation, store } = await this.agent.delegate({
++      audience: this.audience,
++      ttl: TTL,
++      capabilities: {
++        [accountDid]: {
++          'capability/fetch': [{}],
++        },
++      },
++    })
++
++    const headers = Bearer.encode(delegation, store)
++
++    const account =
++      await /** @type {typeof request.json.get<T.AccountInfo>} */ (
++        request.json.get
++      )(new URL(`/api/v0/capabilities`, this.#baseUrl), {
++        headers,
++      })
++
++    return account
++  }
++}
+diff --git a/node_modules/@etherland/odd/lib/sdk/schemas.js b/node_modules/@etherland/odd/lib/sdk/schemas.js
+new file mode 100644
+index 0000000..c7bd0bc
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/schemas.js
+@@ -0,0 +1,24 @@
++import { z } from 'zod'
++
++/**
++ * @typedef {import('zod').z.infer<typeof AccountInput>} AccountInput
++ * @typedef {import('zod').z.infer<typeof LoginInput>} LoginInput
++ */
++
++export const AccountInput = z.object({
++  /**
++   * email verification code
++   */
++  code: z.string().length(6),
++  email: z.string(),
++  username: z.string(),
++  credentialID: z.string().optional(),
++})
++
++export const LoginInput = z.object({
++  /**
++   * email verification code
++   */
++  code: z.string().length(6),
++  username: z.string(),
++})
+diff --git a/node_modules/@etherland/odd/lib/sdk/types.js b/node_modules/@etherland/odd/lib/sdk/types.js
+index 718fd38..4fbdd0a 100644
+--- a/node_modules/@etherland/odd/lib/sdk/types.js
++++ b/node_modules/@etherland/odd/lib/sdk/types.js
+@@ -1,2 +1,2 @@
+-export {};
+-//# sourceMappingURL=types.js.map
+\ No newline at end of file
++/* eslint-disable unicorn/no-empty-file */
++// empty types
+diff --git a/node_modules/@etherland/odd/lib/sdk/types.ts b/node_modules/@etherland/odd/lib/sdk/types.ts
+new file mode 100644
+index 0000000..85bba78
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/types.ts
+@@ -0,0 +1,40 @@
++// @ts-ignore
++import type { Agent } from './ucan/src/agent'
++
++import type { JWT } from './ucan/src/types'
++import type { DID, VerifiableDID } from 'iso-did/types'
++import type { Errors, JsonError } from 'iso-web/http'
++
++// @ts-ignore
++export type * from './schemas'
++
++export type { DID } from 'iso-did/types'
++export type { MaybeResult } from 'iso-web/types'
++export type { Errors, JsonError } from 'iso-web/http'
++
++export type ClientErrors = Errors | JsonError
++
++export interface ClientOptions {
++  url: string
++  did: VerifiableDID
++  agent: Agent
++}
++
++export interface AccountInfo {
++  did: DID
++  username: string
++  email: string
++}
++
++export interface Session {
++  account: AccountInfo
++  ucans: JWT[]
++}
++
++export interface AccountMemberNumber {
++  memberNumber: number
++}
++
++export interface ResponseSuccess {
++  success: true
++}
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/CHANGELOG.md b/node_modules/@etherland/odd/lib/sdk/ucan/CHANGELOG.md
+new file mode 100644
+index 0000000..15123b5
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/CHANGELOG.md
+@@ -0,0 +1,46 @@
++# Changelog
++
++## [0.3.0](https://github.com/fission-codes/stack/compare/ucan-v0.2.0...ucan-v0.3.0) (2024-03-18)
++
++
++### Features
++
++* varsig initial impl ([af82318](https://github.com/fission-codes/stack/commit/af823186f88e676c0798290e3a219a4cba076dbc))
++
++## [0.2.0](https://github.com/fission-codes/stack/compare/ucan-v0.1.2...ucan-v0.2.0) (2024-02-12)
++
++
++### Features
++
++* add agent impl and identifiers(wip) ([043d179](https://github.com/fission-codes/stack/commit/043d179c65bf5af2cdb82c1f0f3f842ce3427080))
++
++
++### Bug Fixes
++
++* export wasmify ([14d724b](https://github.com/fission-codes/stack/commit/14d724b80475165b8f737521ed1cf5d5c5e7c686))
++
++## [0.1.2](https://github.com/fission-codes/stack/compare/ucan-v0.1.1...ucan-v0.1.2) (2024-01-19)
++
++
++### Bug Fixes
++
++* add bearer to the docs ([463cb36](https://github.com/fission-codes/stack/commit/463cb36f22d22b2a31ae7a1cedaba5b38da5de9e))
++
++## [0.1.1](https://github.com/fission-codes/stack/compare/ucan-v0.1.0...ucan-v0.1.1) (2024-01-19)
++
++
++### Bug Fixes
++
++* more docs ([d9018f9](https://github.com/fission-codes/stack/commit/d9018f98e7afd6b5dc585595760ddf589a70ac49))
++
++## [0.1.0](https://github.com/fission-codes/stack/compare/ucan-v0.0.1...ucan-v0.1.0) (2024-01-19)
++
++
++### Features
++
++* bring new types from iso-did and export bearer ([fd1af7e](https://github.com/fission-codes/stack/commit/fd1af7e062020d60c5a85dc0b5f122a87befb3f3))
++
++
++### Bug Fixes
++
++* initial commit ([bcafbc2](https://github.com/fission-codes/stack/commit/bcafbc2f1ca0ad85ab0ed83bb28bcbe266e8b93e))
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/package.json b/node_modules/@etherland/odd/lib/sdk/ucan/package.json
+new file mode 100644
+index 0000000..609a89b
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/package.json
+@@ -0,0 +1,96 @@
++{
++  "name": "@fission-codes/ucan",
++  "type": "module",
++  "version": "0.3.0",
++  "description": "UCAN (User Controlled Authorization Networks) is a decentralized authorization protocol for the web.",
++  "author": "Hugo Dias <hugomrdias@gmail.com> (hugodias.me)",
++  "license": "MIT",
++  "homepage": "https://github.com/fission-codes/stack/tree/main/packages/ucan",
++  "repository": {
++    "url": "fission-codes/stack",
++    "directory": "packages/ucan"
++  },
++  "exports": {
++    ".": {
++      "types": "./dist/src/index.d.ts",
++      "default": "./src/index.js"
++    },
++    "./bearer": {
++      "types": "./dist/src/bearer.d.ts",
++      "default": "./src/bearer.js"
++    },
++    "./agent": {
++      "types": "./dist/src/agent.d.ts",
++      "default": "./src/agent.js"
++    },
++    "./types": {
++      "types": "./dist/src/types.d.ts"
++    }
++  },
++  "main": "src/index.js",
++  "types": "dist/src/index.d.ts",
++  "typesVersions": {
++    "*": {
++      ".": [
++        "dist/src/index"
++      ],
++      "agent": [
++        "dist/src/agent"
++      ],
++      "bearer": [
++        "dist/src/bearer"
++      ],
++      "./types": [
++        "dist/src/types"
++      ]
++    }
++  },
++  "files": [
++    "src",
++    "dist/src/*.d.ts",
++    "dist/src/*.d.ts.map"
++  ],
++  "scripts": {
++    "lint": "tsc --build && eslint . && prettier --check '**/*.{js,ts,yml,json}' --ignore-path ../../.gitignore",
++    "build": "tsc --build",
++    "test": "pnpm run test:node && pnpm run test:browser",
++    "test:node": "playwright-test 'test/**/!(*.browser).test.js' --mode node",
++    "test:browser": "playwright-test 'test/**/!(*.node).test.js'"
++  },
++  "dependencies": {
++    "@noble/ed25519": "^2.0.0",
++    "@scure/bip39": "^1.2.2",
++    "iso-base": "^4.0.0",
++    "iso-did": "^1.6.0",
++    "iso-kv": "^3.0.2",
++    "iso-signatures": "^0.3.2",
++    "multiformats": "^13.1.0"
++  },
++  "devDependencies": {
++    "@types/node": "^20.11.30",
++    "playwright-test": "^14.1.1",
++    "type-fest": "^4.14.0"
++  },
++  "publishConfig": {
++    "provenance": true
++  },
++  "eslintConfig": {
++    "extends": [
++      "@fission-codes"
++    ],
++    "env": {
++      "mocha": true
++    },
++    "ignorePatterns": [
++      "dist"
++    ]
++  },
++  "depcheck": {
++    "specials": [
++      "bin"
++    ],
++    "ignores": [
++      "@types/*"
++    ]
++  }
++}
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/readme.md b/node_modules/@etherland/odd/lib/sdk/ucan/readme.md
+new file mode 100644
+index 0000000..d5270bb
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/readme.md
+@@ -0,0 +1,59 @@
++# UCAN
++
++[![npm (scoped)](https://img.shields.io/npm/v/%40fission-codes/ucan)](https://www.npmjs.com/package/@fission-codes/ucan)
++[![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/fission-codes/stack/ucan.yml)](https://github.com/fission-codes/stack/actions/workflows/ucan.yml)
++[![Built by FISSION](https://img.shields.io/badge/built_by-⌘_Fission-purple.svg)](https://fission.codes)
++[![Discord](https://img.shields.io/discord/478735028319158273?&color=mediumslateblue)](https://discord.gg/zAQBDEq)
++[![Discourse users](<https://img.shields.io/discourse/users?server=https%3A%2F%2Ftalk.fission.codes&label=talk&color=rgb(14%2C%20118%2C%20178)>)](https://talk.fission.codes)
++
++## Installation
++
++```bash
++pnpm install @fission-codes/ucan
++```
++
++## Usage
++
++```js
++import { UCAN } from '@fission-codes/ucan'
++import { EdDSASigner } from 'iso-signatures/signers/eddsa.js'
++
++const ucan = await UCAN.create({
++  issuer: signer,
++  audience: audience.did,
++  capabilities: { 'ucan:*': { '*': [{}] } },
++})
++
++
++```
++
++## Docs
++
++Check <https://fission-codes.github.io/stack>
++
++## Contributing
++
++Read contributing guidelines [here](.github/CONTRIBUTING.md).
++
++[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/fission-codes/stack)
++
++## License
++
++This project is licensed under either of
++
++- Apache License, Version 2.0, ([LICENSE-APACHE](./LICENSE-APACHE) or
++  [http://www.apache.org/licenses/LICENSE-2.0][apache])
++- MIT license ([LICENSE-MIT](./LICENSE-MIT) or
++  [http://opensource.org/licenses/MIT][mit])
++
++at your option.
++
++### Contribution
++
++Unless you explicitly state otherwise, any contribution intentionally
++submitted for inclusion in the work by you, as defined in the Apache-2.0
++license, shall be dual licensed as above, without any additional terms or
++conditions.
++
++[apache]: https://www.apache.org/licenses/LICENSE-2.0
++[mit]: http://opensource.org/licenses/MIT
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/src/agent.js b/node_modules/@etherland/odd/lib/sdk/ucan/src/agent.js
+new file mode 100644
+index 0000000..3ff9672
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/src/agent.js
+@@ -0,0 +1,91 @@
++import { KV } from 'iso-kv'
++import { MemoryDriver } from 'iso-kv/drivers/memory.js'
++import { UCAN } from './index.js'
++
++const SIGNER_KEY = 'signer'
++const PROOFS_KEY = 'proofs'
++
++export class Agent {
++  /**
++   *
++   * @param {import("./types.js").AgentOptions} options
++   */
++  constructor(options) {
++    this.store = options.store
++    this.signer = options.signer
++    this.did = this.signer.did
++  }
++
++  /**
++   *
++   * @param {import('./types.js').AgentCreateOptions} options
++   */
++  static async create(options) {
++    const kv = new KV({
++      driver: options.driver ?? new MemoryDriver(),
++    })
++
++    let signer
++
++    try {
++      signer = await options.resolveSigner(await kv.get([SIGNER_KEY]))
++    } catch (error) {
++      throw new TypeError('Signer resolver mismatch.', { cause: error })
++    }
++
++    await kv.set(['signer'], signer.export())
++
++    return new Agent({
++      store: kv,
++      signer,
++    })
++  }
++
++  /**
++   * @param {Omit<import('./types.js').UCANOptions, 'issuer'| 'proofs'>} options
++   */
++  async delegate(options) {
++    /**
++     * @type {import('./types.js').IUcanStore}
++     */
++    const store = new Map()
++
++    for await (const {
++      value,
++    } of /** @type {typeof this.store.list<import('./types.js').JWT>} */ (
++      this.store.list
++    )({
++      prefix: [PROOFS_KEY],
++    })) {
++      const proof = await UCAN.fromUcan(value)
++      store.set(proof.cid.toString(), proof)
++    }
++
++    const delegation = await UCAN.create({
++      ...options,
++      issuer: this.signer,
++      proofs: [...store.values()].map((proof) => proof.cid),
++    })
++
++    return { delegation, store }
++  }
++
++  /**
++   *
++   * @param {import('./types.js').IUcan[]} proofs
++   */
++  async saveProofs(proofs) {
++    for (const proof of proofs) {
++      // if (proof.audience === this.signer.did) {
++      //   console.log('its for me', proof.capabilities)
++      // }
++      await this.store.set(
++        [PROOFS_KEY, proof.cid.toString()],
++        proof.toString(),
++        {
++          expiration: proof.expiration,
++        }
++      )
++    }
++  }
++}
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/src/bearer.js b/node_modules/@etherland/odd/lib/sdk/ucan/src/bearer.js
+new file mode 100644
+index 0000000..aed11e6
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/src/bearer.js
+@@ -0,0 +1,79 @@
++// eslint-disable-next-line no-unused-vars
++import * as T from './types.js'
++import { UCAN } from './index.js'
++
++/**
++ * Encode UCAN and proofs into HTTP headers.
++ *
++ * @see https://github.com/ucan-wg/ucan-http-bearer-token
++ *
++ * @param {T.IUcan} ucan
++ * @param {T.IUcanStore} store
++ * @returns {T.UCANHTTPHeaders}
++ */
++export function encode(ucan, store) {
++  const ucans = new Set()
++
++  for (const p of ucan.proofs || []) {
++    const proof = store.get(p.toString())
++    if (proof) {
++      ucans.add(proof)
++    }
++  }
++
++  const headers = {
++    authorization: /** @type{T.UCANHTTPHeaders['authorization']} */ (
++      `Bearer ${ucan.toString()}`
++    ),
++  }
++
++  if (ucans.size > 0) {
++    return {
++      ...headers,
++      ucans: [...ucans].join(', '),
++    }
++  }
++
++  return headers
++}
++
++/**
++ * Decode HTTP headers into UCAN, proofs and missing CIDs.
++ *
++ * @see https://github.com/ucan-wg/ucan-http-bearer-token
++ *
++ * @param {Headers | Record<string, string>} headers
++ */
++export async function decode(headers) {
++  const h = new Headers(headers)
++  const authorization = h.get('authorization')
++
++  if (!authorization) {
++    throw new Error('Missing authorization header')
++  }
++
++  const ucan = await UCAN.fromUcan(
++    /** @type {T.JWT} */ (authorization.replace('Bearer ', ''))
++  )
++
++  const proofsJwts = /** @type {T.JWT[] | undefined} */ (
++    h
++      .get('ucans')
++      ?.split(',')
++      .map((v) => v.trimStart())
++  )
++
++  /** @type {Map<string, T.IUcan>} */
++  const index = new Map()
++
++  for (const p of proofsJwts || []) {
++    const ucan = await UCAN.fromUcan(p)
++    index.set(ucan.cid.toString(), ucan)
++  }
++
++  return {
++    ucan,
++    proofs: index,
++    missing: ucan.proofs?.filter((p) => !index.has(p.toString())) || [],
++  }
++}
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/src/identifiers/bip39.js b/node_modules/@etherland/odd/lib/sdk/ucan/src/identifiers/bip39.js
+new file mode 100644
+index 0000000..4efb1fe
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/src/identifiers/bip39.js
+@@ -0,0 +1,78 @@
++import * as bip39 from '@scure/bip39'
++import * as ed from '@noble/ed25519'
++import { DIDKey } from 'iso-did/key'
++import { wordlist } from '@scure/bip39/wordlists/english'
++import { EdDSASigner } from 'iso-signatures/signers/eddsa.js'
++import { UCAN } from '../index.js'
++
++export class Bip39Identifier {
++  /** @type {string} */
++  #seed
++
++  /** @type {import('iso-signatures/types').ISigner<string | CryptoKeyPair>} */
++  #signer
++
++  /**
++   * @param {import("./types.js").Bip39IdentifierOptions} options
++   */
++  constructor(options) {
++    this.#seed = options.mnemonic
++    this.#signer = options.signer
++  }
++
++  /**
++   * @param {string} [password]
++   */
++  static async generate(password) {
++    const mn = bip39.generateMnemonic(wordlist)
++    const pk = bip39.mnemonicToSeedSync(mn, password)
++    const privateKey = pk.slice(0, 32)
++    const publicKey = await ed.getPublicKeyAsync(privateKey)
++    const signer = new EdDSASigner(
++      DIDKey.fromPublicKey('Ed25519', publicKey),
++      privateKey
++    )
++
++    return new Bip39Identifier({
++      mnemonic: mn,
++      signer,
++    })
++  }
++
++  /**
++   * @param {string} mnemonic
++   * @param {string} [password]
++   */
++  static async import(mnemonic, password) {
++    const pk = bip39.mnemonicToSeedSync(mnemonic, password)
++    const privateKey = pk.slice(0, 32)
++    const publicKey = await ed.getPublicKeyAsync(privateKey)
++    const signer = new EdDSASigner(
++      DIDKey.fromPublicKey('Ed25519', publicKey),
++      privateKey
++    )
++
++    return new Bip39Identifier({
++      mnemonic,
++      signer,
++    })
++  }
++
++  /**
++   * @param {Omit<import('../types.js').UCANOptions, 'issuer'>} options
++   */
++  async delegate(options) {
++    return await UCAN.create({
++      ...options,
++      issuer: this.#signer,
++    })
++  }
++
++  export() {
++    return this.#seed
++  }
++
++  toString() {
++    return this.#signer.toString()
++  }
++}
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/src/identifiers/types.js b/node_modules/@etherland/odd/lib/sdk/ucan/src/identifiers/types.js
+index 718fd38..4fbdd0a 100644
+--- a/node_modules/@etherland/odd/lib/sdk/ucan/src/identifiers/types.js
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/src/identifiers/types.js
+@@ -1,2 +1,2 @@
+-export {};
+-//# sourceMappingURL=types.js.map
+\ No newline at end of file
++/* eslint-disable unicorn/no-empty-file */
++// empty types
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/src/identifiers/types.ts b/node_modules/@etherland/odd/lib/sdk/ucan/src/identifiers/types.ts
+new file mode 100644
+index 0000000..a9539a1
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/src/identifiers/types.ts
+@@ -0,0 +1,8 @@
++import type { ISigner } from 'iso-signatures/types'
++
++// export interface Identifier {}
++
++export interface Bip39IdentifierOptions {
++  mnemonic: string
++  signer: ISigner<string | CryptoKeyPair>
++}
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/src/index.js b/node_modules/@etherland/odd/lib/sdk/ucan/src/index.js
+new file mode 100644
+index 0000000..a57150c
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/src/index.js
+@@ -0,0 +1,157 @@
++import { utf8 } from 'iso-base/utf8'
++import { base64 } from 'iso-base/rfc4648'
++import * as JWT from './jwt.js'
++
++// eslint-disable-next-line no-unused-vars
++import * as T from './types.js'
++
++/** @type {T.Version} */
++export const VERSION = '0.10.0'
++
++/**
++ * Returns UTC Unix timestamp for comparing it against time window of the UCAN.
++ */
++export const now = () => Math.floor(Date.now() / 1000)
++
++/**
++ * @implements {T.IUcan}
++ */
++export class UCAN {
++  /**
++   * @param {Omit<T.UCANProps, 'version'>} props
++   * @param {T.UCANArtifacts} artifacts
++   */
++  constructor(props, artifacts) {
++    this.issuer = props.issuer
++    this.audience = props.audience
++    this.version = VERSION
++    this.capabilities = props.capabilities
++    this.expiration = props.expiration
++    this.notBefore = props.notBefore
++    this.nonce = props.nonce
++    this.facts = props.facts
++    this.proofs = props.proofs
++
++    this.signature = artifacts.signature
++    this.bytes = artifacts.bytes
++    this.ucan = artifacts.ucan
++    this.cid = artifacts.cid
++  }
++
++  /**
++   *
++   * @param {T.UCANOptions} opts
++   */
++  static async create(opts) {
++    const {
++      issuer,
++      audience,
++      capabilities,
++      expiration,
++      notBefore,
++      nonce,
++      facts,
++      proofs,
++      ttl,
++    } = opts
++
++    /** @type {T.UCANProps} */
++    const props = {
++      issuer,
++      audience,
++      capabilities,
++      // eslint-disable-next-line unicorn/no-null
++      expiration: expiration ?? (typeof ttl === 'number' ? now() + ttl : null),
++      notBefore,
++      nonce,
++      facts,
++      proofs,
++      version: VERSION,
++    }
++    const ucan = new UCAN(props, await JWT.encode(props, issuer))
++    return ucan
++  }
++
++  /**
++   *
++   * @param {import('./types.js').JWT} ucan - JWT string
++   */
++  static async fromUcan(ucan) {
++    const { props, artifacts } = await JWT.decode(ucan)
++    return new UCAN(props, artifacts)
++  }
++
++  /**
++   *
++   * @returns {import('multiformats').Block<Uint8Array, T.CodecCode, T.HashCode, 1>}
++   */
++  block() {
++    return {
++      bytes: this.bytes,
++      cid: this.cid,
++    }
++  }
++
++  /**
++   *
++   * @param {import('iso-signatures/types').IResolver} resolver
++   */
++  async isValid(resolver) {
++    const [encodedHeader, encodedPayload] = this.ucan.split('.')
++    const isVerified = await resolver.verify({
++      message: utf8.decode(`${encodedHeader}.${encodedPayload}`),
++      signature: this.signature,
++      ...this.issuer,
++    })
++
++    if (!isVerified) {
++      return false
++    }
++
++    if (this.expiration && this.expiration <= now()) {
++      return false
++    }
++
++    if (this.notBefore && this.notBefore > now()) {
++      return false
++    }
++
++    return true
++  }
++
++  /**
++   *
++   * @returns {T.JWT}
++   */
++  toString() {
++    return this.ucan
++  }
++
++  /**
++   *
++   * @returns {T.Jsonifiable}
++   */
++  toJSON() {
++    return {
++      issuer: this.issuer.toString(),
++      audience: this.audience.toString(),
++      version: this.version,
++      capabilities: /** @type {T.Jsonify<T.Capabilities>} **/ (
++        this.capabilities
++      ),
++      expiration: this.expiration,
++      notBefore: this.notBefore,
++      nonce: this.nonce,
++      facts: /** @type {T.Jsonify<T.Facts>} **/ (this.facts),
++      proofs: /** @type {T.Jsonify<import('multiformats').LinkJSON[]>} **/ (
++        this.proofs?.map((p) => p.toJSON())
++      ),
++      signature: base64.encode(this.signature),
++      ucan: this.ucan,
++      bytes: utf8.encode(this.bytes),
++      cid: /** @type {T.Jsonify<import('multiformats').LinkJSON>} **/ (
++        this.cid.toJSON()
++      ),
++    }
++  }
++}
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/src/jwt.js b/node_modules/@etherland/odd/lib/sdk/ucan/src/jwt.js
+new file mode 100644
+index 0000000..b957d61
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/src/jwt.js
+@@ -0,0 +1,146 @@
++import { base64url } from 'iso-base/rfc4648'
++import { sha256 } from 'multiformats/hashes/sha2'
++import { code as RAW_CODE } from 'multiformats/codecs/raw'
++import { utf8 } from 'iso-base/utf8'
++import * as DID from 'iso-did'
++import { CID } from 'multiformats/cid'
++
++// eslint-disable-next-line no-unused-vars
++import * as T from './types.js'
++
++/**
++ * Serialise Object to JWT style string.
++ *
++ * @param {import('type-fest').Jsonifiable} input - JSON input
++ */
++export function serialize(input) {
++  return base64url.encode(utf8.decode(JSON.stringify(input)))
++}
++
++/**
++ * Deserialise JWT style string section to object.
++ *
++ * @template T
++ * @param {string} input
++ * @returns {T}
++ */
++export function deserialize(input) {
++  let decodedString
++
++  try {
++    const decodedBytes = base64url.decode(input)
++    decodedString = utf8.encode(decodedBytes)
++  } catch {
++    throw new Error(`Can't parse: ${input}: Can't parse as base64url.`)
++  }
++
++  try {
++    return JSON.parse(decodedString)
++  } catch {
++    throw new Error(
++      `Can't parse: ${input}: Can't parse base64url encoded JSON inside.`
++    )
++  }
++}
++
++/**
++ *
++ * @param {T.UCANProps} data
++ * @param {import('iso-signatures/types').ISigner<any>} signer
++ * @returns {Promise<T.UCANArtifacts>}
++ */
++export async function encode(data, signer) {
++  /** @type {import('type-fest').Jsonify<T.JWTHeader>} */
++  const header = {
++    alg: data.issuer.alg,
++    typ: 'JWT',
++  }
++  /** @type {import('type-fest').Jsonify<T.JWTPayload>} */
++  const payload = {
++    aud: data.audience,
++    iss: data.issuer.did,
++    cap: data.capabilities,
++    exp: data.expiration,
++    ucv: data.version,
++    fct: data.facts,
++    prf: /** @type {T.StringOf<T.CID>[]} */ (
++      data.proofs?.map((p) => p.toString())
++    ),
++    nbf: data.notBefore,
++    nnc: data.nonce,
++  }
++
++  const headerAndPayload = `${serialize(header)}.${serialize(payload)}`
++  const signature = await signer.sign(utf8.decode(headerAndPayload))
++
++  const ucan = /** @type {T.JWT} */ (
++    `${headerAndPayload}.${base64url.encode(signature)}`
++  )
++  const bytes = utf8.decode(ucan)
++
++  return {
++    ucan,
++    signature,
++    bytes,
++    cid: CID.create(1, RAW_CODE, await sha256.digest(bytes)),
++  }
++}
++
++/**
++ * Decode JWT style string to Object.
++ *
++ * TODO: add valiation
++ *
++ * @param {T.JWT} data
++ * @return {Promise<{props: T.UCANProps , artifacts: T.UCANArtifacts}>}
++ */
++export async function decode(data) {
++  const [encodedHeader, encodedPayload, encodedSignature] = data.split('.')
++  if (
++    encodedHeader === undefined ||
++    encodedPayload === undefined ||
++    encodedSignature === undefined
++  ) {
++    throw new Error(
++      `Can't parse UCAN: ${data}: Expected JWT format: 3 dot-separated base64url-encoded values.`
++    )
++  }
++
++  /** @type {T.JWTHeader} */
++  const header = deserialize(encodedHeader)
++  if (header.typ !== 'JWT') {
++    throw new Error(`Expected type "JWT" got ${header.typ}.`)
++  }
++
++  /** @type {T.JWTPayload} */
++  const payloadObject = deserialize(encodedPayload)
++  const issuer = await DID.DID.fromString(payloadObject.iss)
++
++  if (header.alg !== issuer.alg) {
++    throw new Error(
++      `Expected signature algorithm "${issuer.alg}" got ${header.alg}.`
++    )
++  }
++  const signature = base64url.decode(encodedSignature)
++  const bytes = utf8.decode(data)
++
++  return {
++    props: {
++      audience: DID.parse(payloadObject.aud).did,
++      issuer,
++      capabilities: payloadObject.cap,
++      expiration: payloadObject.exp,
++      version: payloadObject.ucv,
++      facts: payloadObject.fct,
++      proofs: payloadObject.prf?.map((p) => CID.parse(p)),
++      notBefore: payloadObject.nbf,
++      nonce: payloadObject.nnc,
++    },
++    artifacts: {
++      signature,
++      ucan: data,
++      bytes,
++      cid: CID.create(1, RAW_CODE, await sha256.digest(bytes)),
++    },
++  }
++}
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/src/types.js b/node_modules/@etherland/odd/lib/sdk/ucan/src/types.js
+index dcb0801..4fbdd0a 100644
+--- a/node_modules/@etherland/odd/lib/sdk/ucan/src/types.js
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/src/types.js
+@@ -1,2 +1,2 @@
+-export { CID } from 'multiformats/cid';
+-//# sourceMappingURL=types.js.map
+\ No newline at end of file
++/* eslint-disable unicorn/no-empty-file */
++// empty types
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/src/types.ts b/node_modules/@etherland/odd/lib/sdk/ucan/src/types.ts
+new file mode 100644
+index 0000000..a496424
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/src/types.ts
+@@ -0,0 +1,217 @@
++import type { DID, SignatureAlgorithm, VerifiableDID } from 'iso-did/types'
++import type { CID } from 'multiformats/cid'
++import type { Jsonifiable, Jsonify, Opaque } from 'type-fest'
++import type { IResolver, ISigner } from 'iso-signatures/types'
++import type { code as RAW_CODE } from 'multiformats/codecs/raw'
++import type { sha256 } from 'multiformats/hashes/sha2'
++import type { Block } from 'multiformats'
++import type { Driver, IKV } from 'iso-kv'
++
++// @ts-ignore
++import type { ENCODING } from './varsig'
++
++export { CID } from 'multiformats/cid'
++
++export type { Jsonify, Jsonifiable } from 'type-fest'
++
++export type CodecCode = typeof RAW_CODE
++export type HashCode = typeof sha256.code
++
++export type StringOf<T> = Opaque<string, T>
++
++/**
++ * The expiration time is specified as a Unix timestamp in seconds since UNIX epoch
++ */
++export type UnixTimestamp = number
++
++export type Nonce = string
++
++/**
++ * Verifiable facts and proofs of knowledge included in a UCAN {@link JWTPayload} in order to
++ * support claimed capabilities.
++ *
++ * @see https://github.com/ucan-wg/spec?tab=readme-ov-file#325-facts
++ */
++export type Facts = Record<string, unknown>
++
++/**
++ * The version of the UCAN spec used to produce a specific UCAN.
++ *
++ * @see https://github.com/ucan-wg/spec?tab=readme-ov-file#321-version
++ */
++export type Version = `${number}.${number}.${number}`
++
++/**
++ * A UCAN, encoded as a JSON Web Token (JWT) string.
++ */
++export type JWT = `${string}.${string}.${string}`
++
++/**
++ * A UCAN header, in the format used by the JWT encoding.
++ *
++ * @see https://github.com/ucan-wg/spec?tab=readme-ov-file#31-header
++ */
++export interface JWTHeader {
++  alg: SignatureAlgorithm
++  typ: 'JWT'
++}
++
++/**
++ * A UCAN payload, in the format used by the JWT encoding.
++ *
++ * @see https://github.com/ucan-wg/spec?tab=readme-ov-file#32-payload
++ */
++export interface JWTPayload<C extends Capabilities = Capabilities> {
++  ucv: Version
++  iss: string
++  aud: string
++  nbf?: UnixTimestamp
++  exp: UnixTimestamp | null
++  nnc?: Nonce
++  fct?: Facts
++  cap: C
++  prf?: Array<StringOf<CID>>
++}
++
++/**
++ * A list of caveats that must be satisfied in order for a UCAN to be valid.
++ *
++ * @see https://github.com/ucan-wg/spec?tab=readme-ov-file#3263-caveat-array
++ */
++export type Caveat = Record<string, unknown>
++export type Caveats = Caveat[]
++
++/**
++ * A string that represents some action that a UCAN holder can do.
++ *
++ * @see https://github.com/ucan-wg/spec?tab=readme-ov-file#3262-abilities
++ */
++export type Ability = `${string}/${string}` | `ucan/*` | '*'
++
++/**
++ * A string that represents resource a UCAN holder can act upon.
++ *
++ * @see https://github.com/ucan-wg/spec?tab=readme-ov-file#3261-resource
++ */
++export type Resource =
++  | `${string}:${string}`
++  | `ucan:${string}`
++  | `ucan:*`
++  | `ucan:./*`
++  | `ucan://${string}/*`
++  | `ucan://${string}/${string}`
++
++/**
++ *
++ * @todo TS can't handle Ability type as a key in a Record forces the '*' key to exist in the Record
++ *
++ * @see https://github.com/ucan-wg/spec?tab=readme-ov-file#3262-abilities
++ */
++export type Abilities =
++  | {
++      [key in `${string}/${string}`]: Caveats
++    }
++  | {
++      [key in `*`]: Caveats
++    }
++
++export type Capabilities = Record<Resource, Abilities>
++
++export interface UCANOptions<C extends Capabilities = Capabilities> {
++  issuer: ISigner<any>
++  audience: DID
++  capabilities: C
++  facts?: Facts
++  notBefore?: UnixTimestamp
++  expiration?: UnixTimestamp
++  nonce?: Nonce
++  proofs?: CID[]
++  /**
++   * Time to live in seconds
++   */
++  ttl?: number
++}
++
++/**
++ * UCAN representation as a JS object.
++ */
++export interface UCANProps<C extends Capabilities = Capabilities> {
++  readonly issuer: VerifiableDID
++  readonly audience: DID
++  readonly version: Version
++  readonly capabilities: C
++  readonly expiration: UnixTimestamp | null
++  readonly notBefore?: UnixTimestamp
++  readonly nonce?: Nonce
++  readonly facts?: Facts
++  readonly proofs?: CID[]
++}
++
++export interface UCANArtifacts {
++  /**
++   * UCAN Issuer signature of the UCAN payload
++   */
++  readonly signature: Uint8Array
++  /**
++   * UCAN encoded as a JWT
++   */
++  readonly ucan: JWT
++  /**
++   * Multiformat Raw Codec encoded bytes
++   */
++  readonly bytes: Uint8Array
++  /**
++   * CID v1
++   */
++  readonly cid: CID<Uint8Array, CodecCode, HashCode, 1>
++}
++
++/**
++ * Represents a decoded "view" of a UCAN as a JS object that can be used in your domain logic, etc.
++ */
++export interface IUcan<C extends Capabilities = Capabilities>
++  extends UCANProps<C>,
++    UCANArtifacts {
++  block: () => Block<Uint8Array, CodecCode, HashCode, 1>
++  isValid: (resolver: IResolver) => Promise<boolean>
++  toString: () => JWT
++  toJSON: () => Jsonifiable
++}
++
++/**
++ * UCAN as Bearer Token
++ */
++
++/**
++ * HTTP Request headers for UCAN bearer token
++ *
++ * @see https://github.com/ucan-wg/ucan-http-bearer-token?tab=readme-ov-file#2-request-headers
++ */
++export type UCANHTTPHeaders = Jsonify<{
++  authorization: `Bearer ${JWT}`
++  ucans?: string
++}>
++
++export type IUcanStore = Map<string, IUcan>
++
++export interface AgentOptions {
++  // identifier: Bip39Identifier
++  store: IKV
++  signer: ISigner<string | CryptoKeyPair>
++}
++
++export interface AgentCreateOptions {
++  driver?: Driver
++  resolveSigner: (
++    exported: string | CryptoKeyPair | undefined
++  ) => Promise<ISigner<string | CryptoKeyPair>>
++}
++
++/**
++ * Varsig types
++ */
++
++export interface VarsigOptions {
++  encoding: keyof typeof ENCODING
++  alg: SignatureAlgorithm
++}
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/src/varsig.js b/node_modules/@etherland/odd/lib/sdk/ucan/src/varsig.js
+new file mode 100644
+index 0000000..6d4117a
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/src/varsig.js
+@@ -0,0 +1,180 @@
++import { varint } from 'iso-base/varint'
++import { equals } from 'iso-base/utils'
++import { hex } from 'iso-base/rfc4648'
++
++export const VARSIG = 0x34
++
++export const ENCODING = /** @types  {const} */ {
++  RAW: 0x5f,
++  'DAG-PB': 0x70,
++  'DAG-CBOR': 0x71,
++  'DAG-JSON': 0x1_29,
++  JWT: 0x6a_77,
++}
++
++/**
++ * @type {Record<number, string>}
++ */
++export const CODE_ENCODING = /** @types  {const} */ {
++  0x5f: 'RAW',
++  0x70: 'DAG-PB',
++  0x71: 'DAG-CBOR',
++  0x1_29: 'DAG-JSON',
++  0x6a_77: 'JWT',
++}
++
++export const ALG = /** @type {const} */ ({
++  EdDSA: 0xed,
++  RS256: 0x12_05,
++  ES256: 0x12_00,
++  ES384: 0x12_01,
++  ES512: 0x12_02,
++  ES256K: 0xe7,
++})
++
++/**
++ * @type {Record<number, string>}
++ */
++export const CODE_ALG = /** @type {const} */ ({
++  0xed: 'EdDSA',
++  0x12_05: 'RS256',
++  0x12_00: 'ES256',
++  0x12_01: 'ES384',
++  0x12_02: 'ES512',
++  0xe7: 'ES256K',
++})
++
++/**
++ * @param {keyof typeof ENCODING} type
++ */
++export function encCode(type) {
++  const encCode = ENCODING[type]
++  if (!encCode) {
++    throw new TypeError(`Unsupported encoding ${type}`)
++  }
++  return encCode
++}
++
++/**
++ * Varint encoding for signature algorithms and encodings.
++ *
++ * @type {Record<keyof typeof ENCODING | 'VARSIG' | import('iso-did/types').SignatureAlgorithm, number[]  >}
++ */
++const VARINT = {
++  VARSIG: [52],
++
++  RAW: [95],
++  'DAG-CBOR': [113],
++  'DAG-JSON': [169, 2],
++  'DAG-PB': [112],
++  JWT: [247, 212, 1],
++
++  EdDSA: [237, 1],
++  //      rsa   + SHA2-256 + 256
++  RS256: [133, 36, 18, 128, 2],
++  // secp256k1  + SHA2-256
++  ES256K: [231, 1, 18],
++  //     p256   + SHA2-256
++  ES256: [128, 36, 18],
++  //     p384   + SHA2-384
++  ES384: [129, 36, 32],
++  //     p512   + SHA2-512
++  ES512: [130, 36, 19],
++}
++
++/**
++ * @param {import('./types.js').VarsigOptions} options
++ */
++export function encode(options) {
++  const enc = VARINT[options.encoding]
++  if (!enc) {
++    throw new TypeError(`Unsupported encoding ${options.encoding}`)
++  }
++
++  const alg = VARINT[options.alg]
++  if (!alg) {
++    throw new TypeError(`Unsupported algorithm ${options.alg}`)
++  }
++
++  return Uint8Array.from([...VARINT.VARSIG, ...alg, ...enc])
++}
++
++/**
++ * Match the algorithm and encoding.
++ *
++ * @param {keyof typeof ALG} alg
++ * @param {Uint8Array} buf
++ */
++function matchAlg(alg, buf) {
++  const expected = Uint8Array.from([...VARINT.VARSIG, ...VARINT[alg]])
++  const actual = buf.slice(0, VARINT[alg].length + 1)
++  const match = equals(actual, expected)
++  if (!match)
++    throw new TypeError(
++      `Header 0x${hex.encode(actual)} does not match expected 0x${hex.encode(expected)} for ${alg}`
++    )
++  const enc = varint.decode(buf, expected.length)
++  const encoding = CODE_ENCODING[enc[0]]
++  if (!encoding) {
++    throw new TypeError(`Unsupported encoding 0x${enc[0]}`)
++  }
++
++  return encoding
++}
++
++/**
++ * Decode varsig header
++ *
++ * @param {Uint8Array} buf
++ */
++export function decode(buf) {
++  const alg = varint.decode(buf, varint.encodingLength(VARSIG))
++
++  switch (CODE_ALG[alg[0]]) {
++    case 'RS256': {
++      return {
++        alg: 'RS256',
++        encoding: matchAlg('RS256', buf),
++      }
++    }
++
++    case 'ES256': {
++      return {
++        alg: 'ES256',
++        encoding: matchAlg('ES256', buf),
++      }
++    }
++
++    case 'ES384': {
++      return {
++        alg: 'ES384',
++        encoding: matchAlg('ES384', buf),
++      }
++    }
++
++    case 'ES512': {
++      return {
++        alg: 'ES512',
++        encoding: matchAlg('ES512', buf),
++      }
++    }
++
++    case 'ES256K': {
++      return {
++        alg: 'ES256K',
++        encoding: matchAlg('ES256K', buf),
++      }
++    }
++
++    case 'EdDSA': {
++      return {
++        alg: 'EdDSA',
++        encoding: matchAlg('EdDSA', buf),
++      }
++    }
++
++    default: {
++      throw new TypeError(`Unsupported algorithm with code ${alg[0]}`)
++    }
++  }
++}
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/test/agent.test.js b/node_modules/@etherland/odd/lib/sdk/ucan/test/agent.test.js
+new file mode 100644
+index 0000000..21c255c
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/test/agent.test.js
+@@ -0,0 +1,75 @@
++import { assert, suite } from 'playwright-test/taps'
++import { EdDSASigner } from 'iso-signatures/signers/eddsa.js'
++import { ECDSASigner } from 'iso-signatures/signers/ecdsa.js'
++import { MemoryDriver } from 'iso-kv/drivers/memory.js'
++import { RSASigner } from 'iso-signatures/signers/rsa.js'
++import { Agent } from '../src/agent.js'
++
++const test = suite('agent')
++
++const resolverEdOrEC = (
++  /** @type {string | CryptoKeyPair | undefined} */ exported
++) => {
++  if (typeof exported === 'string') {
++    return EdDSASigner.import(exported)
++  }
++
++  if (typeof exported === 'object') {
++    return ECDSASigner.import(exported)
++  }
++
++  return ECDSASigner.generate('ES256')
++}
++
++const resolverRSA = (
++  /** @type {string | CryptoKeyPair | undefined} */ exported
++) => {
++  if (typeof exported === 'object') {
++    return RSASigner.import(exported)
++  }
++
++  return RSASigner.generate()
++}
++
++test('should create', async function () {
++  const agent = await Agent.create({
++    resolveSigner: resolverEdOrEC,
++  })
++
++  assert.ok(agent)
++})
++
++test('should fail with mismatch', async function () {
++  const driver = new MemoryDriver()
++  await Agent.create({
++    driver,
++    resolveSigner: resolverEdOrEC,
++  })
++
++  assert.rejects(
++    async () => {
++      await Agent.create({
++        driver,
++        resolveSigner: resolverRSA,
++      })
++    },
++    {
++      message: 'Signer resolver mismatch.',
++    }
++  )
++})
++
++test('should recreate', async function () {
++  const driver = new MemoryDriver()
++  const agent1 = await Agent.create({
++    driver,
++    resolveSigner: resolverEdOrEC,
++  })
++
++  const agent2 = await Agent.create({
++    driver,
++    resolveSigner: resolverEdOrEC,
++  })
++
++  assert.deepEqual(agent1.signer.did, agent2.signer.did)
++})
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/test/bearer.test.js b/node_modules/@etherland/odd/lib/sdk/ucan/test/bearer.test.js
+new file mode 100644
+index 0000000..faebab8
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/test/bearer.test.js
+@@ -0,0 +1,152 @@
++import { assert, suite } from 'playwright-test/taps'
++import { EdDSASigner } from 'iso-signatures/signers/eddsa.js'
++import { UCAN } from '../src/index.js'
++
++import * as Bearer from '../src/bearer.js'
++
++// eslint-disable-next-line no-unused-vars
++import * as T from '../src/types.js'
++
++const test = suite('bearer')
++
++const signer = await EdDSASigner.generate()
++const audience = await EdDSASigner.generate()
++const ucan1 = await UCAN.create({
++  issuer: signer,
++  audience: audience.did,
++  capabilities: { 'ucan:*': { '*': [{}] } },
++})
++
++const ucan2 = await UCAN.create({
++  issuer: signer,
++  audience: audience.did,
++  nonce: 'ucan2',
++  capabilities: { 'ucan:*': { '*': [{}] } },
++})
++
++/** @type {Map<string, T.IUcan>} */
++const store = new Map()
++
++store.set(ucan1.cid.toString(), ucan1)
++store.set(ucan2.cid.toString(), ucan2)
++
++test('should encode valid headers', async function () {
++  const ucan = await UCAN.create({
++    issuer: signer,
++    audience: audience.did,
++    capabilities: { 'ucan:*': { '*': [{}] } },
++    proofs: [ucan1.cid, ucan2.cid],
++  })
++
++  const headers = Bearer.encode(ucan, store)
++
++  assert.deepEqual(headers, {
++    authorization: `Bearer ${ucan.toString()}`,
++    ucans: `${ucan1.toString()}, ${ucan2.toString()}`,
++  })
++})
++
++test('should encode dedup proofs', async function () {
++  const ucan = await UCAN.create({
++    issuer: signer,
++    audience: audience.did,
++    capabilities: { 'ucan:*': { '*': [{}] } },
++    proofs: [ucan1.cid, ucan1.cid],
++  })
++
++  const headers = Bearer.encode(ucan, store)
++
++  assert.deepEqual(headers, {
++    authorization: `Bearer ${ucan.toString()}`,
++    ucans: `${ucan1.toString()}`,
++  })
++})
++
++test('should encode not have ucans without proofs', async function () {
++  const ucan = await UCAN.create({
++    issuer: signer,
++    audience: audience.did,
++    capabilities: { 'ucan:*': { '*': [{}] } },
++  })
++
++  const headers = Bearer.encode(ucan, store)
++
++  assert.deepEqual(headers, {
++    authorization: `Bearer ${ucan.toString()}`,
++  })
++})
++
++test('should encode works with native Headers', async function () {
++  const ucan = await UCAN.create({
++    issuer: signer,
++    audience: audience.did,
++    capabilities: { 'ucan:*': { '*': [{}] } },
++  })
++
++  const headers = Bearer.encode(ucan, store)
++  const h1 = new Headers(headers)
++
++  // @ts-expect-error Headers does have entries
++  assert.deepEqual(headers, Object.fromEntries(h1.entries()))
++
++  const h2 = new Headers()
++
++  h2.set('authorization', headers.authorization)
++  if (headers.ucans) {
++    h2.set('ucans', headers.ucans)
++  }
++  // @ts-expect-error Headers does have entries
++  assert.deepEqual(headers, Object.fromEntries(h2.entries()))
++})
++
++test('should decode', async function () {
++  const ucan = await UCAN.create({
++    issuer: signer,
++    audience: audience.did,
++    capabilities: { 'ucan:*': { '*': [{}] } },
++    proofs: [ucan1.cid, ucan2.cid],
++  })
++
++  const headers = Bearer.encode(ucan, store)
++  const out = await Bearer.decode(headers)
++
++  assert.equal(out.ucan.toString(), ucan.toString())
++  assert.equal(out.proofs.size, 2)
++  assert.equal(out.missing.length, 0)
++})
++
++test('should decode and return missing', async function () {
++  const ucan = await UCAN.create({
++    issuer: signer,
++    audience: audience.did,
++    capabilities: { 'ucan:*': { '*': [{}] } },
++    proofs: [ucan1.cid, ucan2.cid],
++  })
++
++  /** @type {Map<string, T.IUcan>} */
++  const store = new Map()
++
++  store.set(ucan1.cid.toString(), ucan1)
++  const headers = Bearer.encode(ucan, store)
++  const out = await Bearer.decode(headers)
++
++  assert.equal(out.ucan.toString(), ucan.toString())
++  assert.equal(out.proofs.size, 1)
++  assert.equal(out.missing[0].toString(), ucan2.cid.toString())
++})
++
++test('should decode Headers', async function () {
++  const ucan = await UCAN.create({
++    issuer: signer,
++    audience: audience.did,
++    capabilities: { 'ucan:*': { '*': [{}] } },
++    proofs: [ucan1.cid, ucan2.cid],
++  })
++
++  const headers = new Headers(Bearer.encode(ucan, store))
++  const out = await Bearer.decode(headers)
++
++  assert.equal(out.ucan.toString(), ucan.toString())
++  assert.equal(out.proofs.size, 2)
++  assert.equal(out.missing.length, 0)
++})
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/test/delegation.test.js b/node_modules/@etherland/odd/lib/sdk/ucan/test/delegation.test.js
+new file mode 100644
+index 0000000..9a338ce
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/test/delegation.test.js
+@@ -0,0 +1,129 @@
++/* eslint-disable unicorn/no-null */
++import { assert, suite } from 'playwright-test/taps'
++import { EdDSASigner } from 'iso-signatures/signers/eddsa.js'
++import { Resolver } from 'iso-signatures/verifiers/resolver.js'
++import * as EdDSA from 'iso-signatures/verifiers/eddsa.js'
++import { UCAN } from '../src/index.js'
++
++const test = suite('delegation')
++const now = () => Math.floor(Date.now() / 1000)
++
++test('should generate valid jwt', async function () {
++  const signer = await EdDSASigner.generate()
++  const audience = await EdDSASigner.generate()
++
++  const ucan = await UCAN.create({
++    issuer: signer,
++    audience: audience.did,
++    capabilities: { 'ucan:*': { '*': [{}] } },
++  })
++
++  assert.ok(
++    await ucan.isValid(
++      new Resolver({
++        ...EdDSA.verifier,
++      })
++    )
++  )
++
++  const ucan2 = await UCAN.fromUcan(ucan.toString())
++
++  assert.equal(ucan.toString(), ucan2.toString())
++})
++
++test('should generate valid json', async function () {
++  const signer = await EdDSASigner.generate()
++  const audience = await EdDSASigner.generate()
++
++  const ucan = await UCAN.create({
++    issuer: signer,
++    audience: audience.did,
++    capabilities: { 'ucan:*': { '*': [{}] } },
++  })
++
++  assert.ok(ucan.toJSON())
++})
++
++test('should default expire', async function () {
++  const signer = await EdDSASigner.generate()
++  const audience = await EdDSASigner.generate()
++
++  const ucan = await UCAN.create({
++    issuer: signer,
++    audience: audience.did,
++    capabilities: { 'ucan:*': { '*': [{}] } },
++  })
++
++  assert.equal(ucan.expiration, null)
++})
++
++test('should default should not expire', async function () {
++  const signer = await EdDSASigner.generate()
++  const audience = await EdDSASigner.generate()
++
++  const ucan = await UCAN.create({
++    issuer: signer,
++    audience: audience.did,
++    expiration: 0,
++    capabilities: { 'ucan:*': { '*': [{}] } },
++  })
++
++  assert.equal(ucan.expiration, 0)
++})
++
++test('should default should expire with ttl', async function () {
++  const signer = await EdDSASigner.generate()
++  const audience = await EdDSASigner.generate()
++
++  const ucan = await UCAN.create({
++    issuer: signer,
++    audience: audience.did,
++    ttl: 30,
++    capabilities: { 'ucan:*': { '*': [{}] } },
++  })
++
++  assert.equal(ucan.expiration, now() + 30)
++})
++
++test('should delegate', async function () {
++  const signer1 = await EdDSASigner.generate()
++  const signer2 = await EdDSASigner.generate()
++
++  const ucan = await UCAN.create({
++    issuer: signer1,
++    audience: signer2.did,
++    capabilities: { 'ucan:*': { '*': [{}] } },
++  })
++
++  const ucan2 = await UCAN.create({
++    issuer: signer2,
++    audience: 'did:web:example.com',
++    capabilities: { [signer1.toString()]: { '*': [{}] } },
++    proofs: [ucan.cid],
++  })
++
++  assert.deepEqual(ucan2.proofs, [ucan.cid])
++})
++
++test('should delegate from jwt', async function () {
++  const signer1 = await EdDSASigner.generate()
++  const signer2 = await EdDSASigner.generate()
++
++  const ucan = await UCAN.create({
++    issuer: signer1,
++    audience: signer2.did,
++    capabilities: { 'ucan:*': { '*': [{}] } },
++  })
++
++  const jwt = ucan.toString()
++  const proof = await UCAN.fromUcan(jwt)
++
++  const ucan2 = await UCAN.create({
++    issuer: signer2,
++    audience: 'did:web:example.com',
++    capabilities: { [signer1.toString()]: { '*': [{}] } },
++    proofs: [proof.cid],
++  })
++
++  assert.deepEqual(ucan2.proofs, [proof.cid])
++})
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/test/varsig.test.js b/node_modules/@etherland/odd/lib/sdk/ucan/test/varsig.test.js
+new file mode 100644
+index 0000000..9a811e5
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/test/varsig.test.js
+@@ -0,0 +1,54 @@
++import { assert, suite } from 'playwright-test/taps'
++import { varint } from 'iso-base/varint'
++import { ALG, ENCODING, VARSIG, decode, encode } from '../src/varsig.js'
++
++const { test } = suite('varsig')
++
++test('should encode es384 cbor', async function () {
++  const out = encode({
++    encoding: 'DAG-CBOR',
++    alg: 'ES384',
++  })
++
++  const varsig = varint.decode(out)
++  const alg = varint.decode(out, varsig[1])
++  const hash = varint.decode(out, varsig[1] + alg[1])
++  const enc = varint.decode(out, varsig[1] + alg[1] + hash[1])
++
++  assert.equal(varsig[0], VARSIG)
++  assert.equal(alg[0], 0x12_01)
++  assert.equal(hash[0], 0x20)
++  assert.equal(enc[0], ENCODING['DAG-CBOR'])
++})
++
++test('should encode rs256 cbor', async function () {
++  const out = encode({
++    encoding: 'DAG-CBOR',
++    alg: 'RS256',
++  })
++
++  const varsig = varint.decode(out)
++  const alg = varint.decode(out, varsig[1])
++  const hash = varint.decode(out, varsig[1] + alg[1])
++  const size = varint.decode(out, varsig[1] + alg[1] + hash[1])
++  const enc = varint.decode(out, varsig[1] + alg[1] + hash[1] + size[1])
++
++  assert.equal(varsig[0], VARSIG)
++  assert.equal(alg[0], ALG.RS256)
++  assert.equal(hash[0], 0x12)
++  assert.equal(size[0], 0x01_00)
++  assert.equal(enc[0], ENCODING['DAG-CBOR'])
++
++  assert.equal(out.length, varsig[1] + alg[1] + hash[1] + size[1] + enc[1])
++})
++
++test('should decode', async function () {
++  const header = {
++    encoding: 'JWT',
++    alg: 'RS256',
++  }
++  // @ts-ignore
++  const out = encode(header)
++
++  assert.deepEqual(decode(out), header)
++})
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/tsconfig.json b/node_modules/@etherland/odd/lib/sdk/ucan/tsconfig.json
+new file mode 100644
+index 0000000..105fd12
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk/ucan/tsconfig.json
+@@ -0,0 +1,17 @@
++{
++  "extends": "../../tsconfig.json",
++  "compilerOptions": {
++    "lib": ["ESNext", "DOM"],
++    "emitDeclarationOnly": true,
++    "outDir": "dist"
++  },
++  "include": ["src", "test", "package.json"],
++  "exclude": ["node_modules", "dist", "out"],
++  "typedocOptions": {
++    "entryPointStrategy": "resolve",
++    "entryPoints": ["src/index.js", "src/bearer.js"],
++    "includeVersion": true,
++    "excludeExternals": true,
++    "internalModule": "<internal>"
++  }
++}
+diff --git a/node_modules/@etherland/odd/lib/sdk/types.d.ts b/node_modules/@etherland/odd/lib/sdk1/types.d.ts
+similarity index 100%
+rename from node_modules/@etherland/odd/lib/sdk/types.d.ts
+rename to node_modules/@etherland/odd/lib/sdk1/types.d.ts
+diff --git a/node_modules/@etherland/odd/lib/sdk1/types.js b/node_modules/@etherland/odd/lib/sdk1/types.js
+new file mode 100644
+index 0000000..718fd38
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk1/types.js
+@@ -0,0 +1,2 @@
++export {};
++//# sourceMappingURL=types.js.map
+\ No newline at end of file
+diff --git a/node_modules/@etherland/odd/lib/sdk/types.js.map b/node_modules/@etherland/odd/lib/sdk1/types.js.map
+similarity index 100%
+rename from node_modules/@etherland/odd/lib/sdk/types.js.map
+rename to node_modules/@etherland/odd/lib/sdk1/types.js.map
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/src/identifiers/types.d.ts b/node_modules/@etherland/odd/lib/sdk1/ucan/src/identifiers/types.d.ts
+similarity index 100%
+rename from node_modules/@etherland/odd/lib/sdk/ucan/src/identifiers/types.d.ts
+rename to node_modules/@etherland/odd/lib/sdk1/ucan/src/identifiers/types.d.ts
+diff --git a/node_modules/@etherland/odd/lib/sdk1/ucan/src/identifiers/types.js b/node_modules/@etherland/odd/lib/sdk1/ucan/src/identifiers/types.js
+new file mode 100644
+index 0000000..718fd38
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk1/ucan/src/identifiers/types.js
+@@ -0,0 +1,2 @@
++export {};
++//# sourceMappingURL=types.js.map
+\ No newline at end of file
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/src/identifiers/types.js.map b/node_modules/@etherland/odd/lib/sdk1/ucan/src/identifiers/types.js.map
+similarity index 100%
+rename from node_modules/@etherland/odd/lib/sdk/ucan/src/identifiers/types.js.map
+rename to node_modules/@etherland/odd/lib/sdk1/ucan/src/identifiers/types.js.map
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/src/types.d.ts b/node_modules/@etherland/odd/lib/sdk1/ucan/src/types.d.ts
+similarity index 100%
+rename from node_modules/@etherland/odd/lib/sdk/ucan/src/types.d.ts
+rename to node_modules/@etherland/odd/lib/sdk1/ucan/src/types.d.ts
+diff --git a/node_modules/@etherland/odd/lib/sdk1/ucan/src/types.js b/node_modules/@etherland/odd/lib/sdk1/ucan/src/types.js
+new file mode 100644
+index 0000000..dcb0801
+--- /dev/null
++++ b/node_modules/@etherland/odd/lib/sdk1/ucan/src/types.js
+@@ -0,0 +1,2 @@
++export { CID } from 'multiformats/cid';
++//# sourceMappingURL=types.js.map
+\ No newline at end of file
+diff --git a/node_modules/@etherland/odd/lib/sdk/ucan/src/types.js.map b/node_modules/@etherland/odd/lib/sdk1/ucan/src/types.js.map
+similarity index 100%
+rename from node_modules/@etherland/odd/lib/sdk/ucan/src/types.js.map
+rename to node_modules/@etherland/odd/lib/sdk1/ucan/src/types.js.map
