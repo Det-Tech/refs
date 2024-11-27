@@ -66,6 +66,9 @@ const InitProvider = ({ children }: { children: React.ReactNode }) => {
             throw new Error(error)
           }
 
+          console.log("session success userInfo ", user)
+
+
           setRecoil(sessionStore, {
             userInfo: {
               id: user !== null ? user.id : 0,
@@ -85,6 +88,8 @@ const InitProvider = ({ children }: { children: React.ReactNode }) => {
             loading: false,
             backupCreated: backupStatus ? backupStatus.created : false,
           })
+          
+          console.log("session success userInfo ", user)
 
           setRecoil(filesystemStore, program.session.fs)
         } else {
