@@ -34,8 +34,10 @@ export const addUser = async (
   hashed: string,
   fullName: string
 ) => {
+  console.log("server addUser", name)
   const supabase = createClient()
   const user = await getUser(name, hashed)
+  console.log("server addUser", user)
   if (user) return user
 
   const { data, error } = await supabase
