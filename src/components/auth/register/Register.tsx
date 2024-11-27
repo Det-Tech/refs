@@ -70,10 +70,10 @@ const Register = () => {
     console.log("res ", res)
   }
 
-  useEffect(() => {
-    console.log("did")
-    getAccount()
-  }, [])
+  // useEffect(() => {
+  //   console.log("did")
+  //   getAccount()
+  // }, [])
 
   const handleEmailVerification = async () => {
     const did = await createDID(crypto)
